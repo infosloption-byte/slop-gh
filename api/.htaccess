@@ -1,0 +1,43 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    <FilesMatch "^\.">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+
+    Options +FollowSymLinks
+    RewriteEngine On
+
+    # --- Force HTTPS (No changes here) ---
+    RewriteCond %{HTTPS} off [OR] 
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^/(.*) https://%{HTTP_HOST}/$1 [NC,R=301,L]
+
+    # --- Handle Authorization Header (No changes here) ---
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    
+    # --- NEW API VERSIONING RULE ---
+    # This is the new line. It finds requests starting with /api/v...
+    # and rewrites them to the corresponding .php file inside the versioned folder.
+    RewriteRule ^api/(v[0-9]+)/(.+)$ api/$1/$2.php [L]
+
+    # --- Redirect Trailing Slashes If Not A Folder... (No changes here) ---
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # --- Handle Front Controller... (No changes here) ---
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+
+    # --- File Protection Rules (No changes here) ---
+    <Files ~ "\.(env|json|config.js|md|gitignore|gitattributes|lock)$">
+        Order allow,deny
+        Deny from all
+    </Files>
+</IfModule>

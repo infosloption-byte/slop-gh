@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - SL Option</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/favicon/site.webmanifest">
+
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <style>
+    <style>
+        #sidebar { transition: width 0.3s ease-in-out, transform 0.3s ease-in-out; }
+        .sidebar-link.active { background-color: #3b82f6; color: white; font-weight: 600; }
+        .sidebar-link:not(.active):hover { background-color: #374151; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        #sidebar.minimized { width: 80px; }
+        #sidebar.minimized .sidebar-label, #sidebar.minimized .sidebar-brand-text { display: none; }
+        #sidebar.minimized .sidebar-link svg { margin: 0 auto; }
+        .admin-filter-btn.active { background-color: #1f2937; color: white; }
+
+        /* Styles for the new Admin Popup */
+
+        #admin-popup-container {
+            display: none; /* Hidden by default */
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        #admin-popup-container.active {
+            display: flex; /* Shown only when .active class is present */
+        }
+        
+        .admin-popup {
+            max-height: 90vh;
+        }
+        .popup-tab.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="flex h-screen bg-gray-200">
+        <aside id="sidebar" class="bg-gray-800 text-gray-200 w-64 space-y-6 py-7 px-2 flex-shrink-0 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 z-30">
+            <div class="flex items-center justify-between px-4">
+                <a href="#" class="text-white flex items-center space-x-2">
+                    <span class="text-2xl font-extrabold sidebar-brand-text">SL Option</span>
+                </a>
+                <button id="sidebar-toggle" class="p-2 rounded-md text-gray-400 hover:bg-gray-700 hidden md:block">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+            <nav>
+                <a href="#" onclick="showContent('dashboard', this)" class="sidebar-link active flex items-center space-x-3 py-2 px-4 rounded">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    <span class="sidebar-label">Dashboard</span>
+                </a>
+                <a href="#" onclick="showContent('users', this)" class="sidebar-link flex items-center space-x-3 py-2 px-4 rounded">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197m0 0A10.004 10.004 0 003 21m12-4a4 4 0 110-8 4 4 0 010 8z"></path></svg>
+                    <span class="sidebar-label">Users</span>
+                </a>
+                <a href="#" onclick="showContent('withdrawals', this)" class="sidebar-link flex items-center space-x-3 py-2 px-4 rounded">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    <span class="sidebar-label">Withdrawals</span>
+                </a>
+            </nav>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <header class="flex justify-between md:justify-end items-center p-4 shadow-md bg-white">
+                <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div class="flex items-center space-x-4">
+                    <span id="admin-email" class="text-sm font-medium text-gray-700">Loading...</span>
+                    <button onclick="logout()" class="text-sm font-medium text-red-600 hover:text-red-800">Logout</button>
+                </div>
+            </header>
+
+            <main class="flex-1 p-6 overflow-y-auto">
+                <div id="dashboard-content" class="content-section active">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-800">Dashboard Overview</h2>
+                        <div class="flex items-center space-x-2 mt-2 sm:mt-0 p-1 bg-gray-200 rounded-lg">
+                            <button onclick="changeAdminFilter('all', this)" class="admin-filter-btn active px-3 py-1 text-sm font-semibold rounded-md">All</button>
+                            <button onclick="changeAdminFilter('real', this)" class="admin-filter-btn px-3 py-1 text-sm font-semibold rounded-md">Real</button>
+                            <button onclick="changeAdminFilter('demo', this)" class="admin-filter-btn px-3 py-1 text-sm font-semibold rounded-md">Demo</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-gray-500 text-sm font-medium">Platform Profit (GGR)</h3><p id="kpi-platform-profit" class="text-3xl font-bold text-green-600">--</p></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-gray-500 text-sm font-medium">Volume Traded</h3><p id="kpi-total-volume" class="text-3xl font-bold text-gray-800">--</p></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-gray-500 text-sm font-medium">Total Deposits</h3><p id="kpi-total-deposits" class="text-3xl font-bold text-blue-600">--</p></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-gray-500 text-sm font-medium">Approved Withdrawals</h3><p id="kpi-approved-withdrawals" class="text-3xl font-bold text-red-600">--</p></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-gray-500 text-sm font-medium">Pending Withdrawals</h3><p id="kpi-pending-withdrawals" class="text-3xl font-bold text-yellow-600">--</p></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-gray-500 text-sm font-medium">Active Users (5m)</h3><p id="kpi-active-users" class="text-3xl font-bold text-blue-600">--</p></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-gray-500 text-sm font-medium">Total Users</h3><p id="kpi-total-users" class="text-3xl font-bold text-gray-800">--</p></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-gray-500 text-sm font-medium">Errors (24h)</h3><p id="kpi-error-count" class="text-3xl font-bold text-red-600">--</p></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Largest Winning Trades</h3>
+                            <ul id="biggest-wins-list" class="space-y-3">
+                                </ul>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Users with High Win Rates (>=10 Trades)</h3>
+                            <ul id="high-win-rate-list" class="space-y-3">
+                                </ul>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Top Traders by Volume</h3>
+                            <ul id="top-traders-list" class="space-y-3">
+                                </ul>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Top Winners by P&L</h3>
+                            <ul id="top-winners-list" class="space-y-3">
+                                </ul>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Top 5 Countries by Users</h3>
+                            <div class="relative h-48">
+                                <canvas id="topCountriesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">New Users (Last 30 Days)</h3>
+                            <div class="relative h-64"><canvas id="userRegistrationsChart"></canvas></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Trade Outcomes</h3>
+                            <div class="relative h-64 flex items-center justify-center"><canvas id="tradeOutcomesChart"></canvas></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Volume by Pair</h3>
+                            <div class="relative h-64 flex items-center justify-center"><canvas id="mostTradedPairsChart"></canvas></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Platform Win Rate by Pair</h3>
+                            <div class="relative h-64"><canvas id="winRateByPairChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="users-content" class="content-section">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">User Management</h2>
+
+                    <div class="mb-4 p-4 bg-white rounded-lg shadow space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <input type="text" id="search-email" placeholder="Search by Email..." class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            <input type="text" id="search-name" placeholder="Search by Name..." class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            <select id="filter-country" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <option value="">All Countries</option>
+                                </select>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label for="start-date" class="text-sm font-medium text-gray-700">Joined From</label>
+                                <input type="date" id="start-date" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div>
+                                <label for="end-date" class="text-sm font-medium text-gray-700">Joined To</label>
+                                <input type="date" id="end-date" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="searchUsers()" class="flex-1 w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Search</button>
+                                <button onclick="clearUserFilters()" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white shadow rounded-lg overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Provider</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="withdrawals-content" class="content-section">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Withdrawal Requests</h2>
+
+                    <div class="mb-4 p-4 bg-white rounded-lg shadow space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label for="withdrawal-search-email" class="text-xs text-gray-500">Email</label>
+                                <input type="text" id="withdrawal-search-email" placeholder="Search by User Email..." class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div>
+                                <label for="withdrawal-filter-status" class="text-xs text-gray-500">Status</label>
+                                <select id="withdrawal-filter-status" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                    <option value="">All Status</option>
+                                    <option value="PENDING" selected>Pending</option>
+                                    <option value="APPROVED">Approved</option>
+                                    <option value="REJECTED">Rejected</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="withdrawal-start-date" class="text-xs text-gray-500">From Date</label>
+                                <input type="date" id="withdrawal-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div>
+                                <label for="withdrawal-end-date" class="text-xs text-gray-500">To Date</label>
+                                <input type="date" id="withdrawal-end-date" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-2">
+                            <button onclick="clearWithdrawalFilters()" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">Clear</button>
+                            <button onclick="searchWithdrawals()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Search</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white shadow rounded-lg overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User Email</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requested At</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="requests-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="withdrawal-management" class="section hidden">
+                    <h2 class="text-3xl font-bold mb-6">💳 Withdrawal Requests</h2>
+
+                    <!-- Filters -->
+                    <div class="bg-gray-800 rounded-lg p-6 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Status</label>
+                                <select id="withdrawalStatusFilter" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                                    <option value="">All Statuses</option>
+                                    <option value="PENDING" selected>Pending</option>
+                                    <option value="APPROVED">Approved</option>
+                                    <option value="REJECTED">Rejected</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Method</label>
+                                <select id="withdrawalMethodFilter" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                                    <option value="">All Methods</option>
+                                    <option value="manual">Manual</option>
+                                    <option value="automated">Automated</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Email Search</label>
+                                <input type="text" id="withdrawalEmailSearch" placeholder="Search by email" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="loadWithdrawals()" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold">
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                        <div class="bg-yellow-600 rounded-lg p-6">
+                            <h3 class="text-sm font-medium text-yellow-100 mb-2">⏳ Pending</h3>
+                            <p id="pendingCount" class="text-3xl font-bold text-white">0</p>
+                        </div>
+                        <div class="bg-green-600 rounded-lg p-6">
+                            <h3 class="text-sm font-medium text-green-100 mb-2">✅ Approved Today</h3>
+                            <p id="approvedTodayCount" class="text-3xl font-bold text-white">0</p>
+                        </div>
+                        <div class="bg-blue-600 rounded-lg p-6">
+                            <h3 class="text-sm font-medium text-blue-100 mb-2">💰 Pending Amount</h3>
+                            <p id="pendingAmount" class="text-3xl font-bold text-white">$0</p>
+                        </div>
+                        <div class="bg-purple-600 rounded-lg p-6">
+                            <h3 class="text-sm font-medium text-purple-100 mb-2">📊 Processed Today</h3>
+                            <p id="processedTodayAmount" class="text-3xl font-bold text-white">$0</p>
+                        </div>
+                    </div>
+
+                    <!-- Withdrawal List -->
+                    <div id="withdrawalList" class="space-y-4">
+                        <!-- Withdrawals will be loaded here -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <div id="toast" class="fixed top-6 right-6 z-50 text-white px-5 py-3 rounded-lg shadow-lg" style="transition: transform 0.3s ease-in-out; transform: translateX(120%);"></div>
+
+    <div id="admin-popup-container">
+        <div id="admin-popup-bg" onclick="closeAdminPopup()" class="absolute inset-0"></div>
+        <div id="admin-popup" class="admin-popup bg-white rounded-lg shadow-xl w-full max-w-4xl flex flex-col relative">
+            </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+    <script>
+
+        /**
+         * A simple function to escape HTML and prevent XSS attacks.
+         * @param {string | number | null} str The string to escape.
+         * @returns {string} The sanitized string.
+         */
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            const p = document.createElement('p');
+            p.textContent = str;
+            return p.innerHTML;
+        }
+
+        const API_BASE_URL = '/api/v1';
+
+        let currentAdminFilter = 'all';
+        let userChart, outcomeChart, pairVolumeChart, winRateChart, countriesChart; // Chart instances
+
+        // Object to hold the current user filter state
+        let userFilters = {};
+
+        let withdrawalFilters = {
+            filter_status: 'PENDING' // Default to show pending requests
+        };
+
+        // --- UI Logic ---
+        document.getElementById('sidebar-toggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('minimized'));
+        document.getElementById('mobile-menu-button').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('-translate-x-full'));
+
+        /**
+         * Main function to run when the page loads.
+         */
+        window.onload = async () => {
+            await loadAllAdminData(); // Load dashboard
+            const allUsers = await apiFetch('/admin/users.php'); // Pre-load all users for the country filter
+            if(allUsers) populateCountries(allUsers);
+
+            setInterval(loadAllAdminData, 15000); 
+        };
+
+        /**
+         * A new central function to fetch and render all dashboard data.
+         */
+        async function loadAllAdminData() {
+            console.log(`Refreshing data with filter: ${currentAdminFilter}...`);
+            document.querySelectorAll('#dashboard-content p[id^="kpi-"]').forEach(el => el.textContent = '...');
+
+            const [dashboardData, analyticsData, userAnalyticsData, riskData, healthData] = await Promise.all([
+                apiFetch(`/admin/dashboard.php?wallet_type=${currentAdminFilter}`),
+                apiFetch(`/admin/analytics.php?wallet_type=${currentAdminFilter}`),
+                apiFetch(`/admin/user_analytics.php?wallet_type=${currentAdminFilter}`),
+                apiFetch(`/admin/risk_analytics.php?wallet_type=${currentAdminFilter}`),
+                apiFetch(`/admin/health_check.php`)
+            ]);
+            
+            if (dashboardData && dashboardData.kpis) renderDashboard(dashboardData, healthData);;
+            if (analyticsData) renderCharts(analyticsData);
+            if (userAnalyticsData) renderUserAnalytics(userAnalyticsData);
+            if (riskData) renderRiskAnalytics(riskData); // NEW render call
+        }
+
+        /**
+         * Called when a filter button is clicked.
+         */
+        function changeAdminFilter(filterType, clickedButton) {
+            currentAdminFilter = filterType;
+            document.querySelectorAll('.admin-filter-btn').forEach(btn => btn.classList.remove('active'));
+            clickedButton.classList.add('active');
+            loadAllAdminData(); // Re-fetch all data with the new filter
+        }
+        
+        function logout() {
+            // Redirect to the server-side logout script which will clear the cookie.
+            // The main app's landing page is likely at the root '/'.
+            window.location.href = '/api/v1/users/logout.php';
+        }
+
+        function showContent(contentId, clickedLink) {
+            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+            const targetContent = document.getElementById(contentId + '-content');
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+            
+            document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+            clickedLink.classList.add('active');
+
+            if (contentId === 'withdrawals') loadAndRenderWithdrawals();
+            if (contentId === 'users') loadAndRenderUsers();
+        }
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.className = `fixed top-6 right-6 z-50 text-white px-5 py-3 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+            toast.style.transform = 'translateX(0)';
+            setTimeout(() => {
+                toast.style.transform = 'translateX(120%)';
+            }, 3000);
+        }
+
+        // --- API Logic ---
+        async function apiFetch(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    ...options,
+                    // CRITICAL: This tells the browser to automatically send the auth cookie.
+                    credentials: 'include', 
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers,
+                    },
+                });
+
+                // If the server says we are unauthorized or forbidden, log out.
+                if (response.status === 401 || response.status === 403) { 
+                    logout();
+                    throw new Error('Unauthorized or Forbidden');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.statusText}`);
+                }
+                
+                const text = await response.text();
+                return text ? JSON.parse(text) : {}; // Handle empty responses gracefully
+
+            } catch (error) {
+                console.error("API Fetch Error:", error);
+                // We re-throw the error so Promise.all can handle it if needed
+                throw error;
+            }
+        }
+
+        async function processRequest(requestId, status, button) {
+            button.parentElement.querySelectorAll('button').forEach(btn => btn.disabled = true);
+            button.textContent = 'Processing...';
+
+            try {
+                const result = await apiFetch('/admin/process_withdrawal.php', {
+                    method: 'POST',
+                    body: JSON.stringify({ request_id: requestId, new_status: status })
+                });
+
+                if (result.message) {
+                    showToast(result.message, 'success');
+                    button.closest('tr').remove();
+                    if (document.getElementById('requests-table-body').children.length === 0) {
+                        renderWithdrawals([]);
+                    }
+                } else {
+                    throw new Error(result.error || 'An unknown error occurred.');
+                }
+            } catch (error) {
+                showToast(`Error: ${error.message}`, 'error');
+                button.parentElement.querySelectorAll('button').forEach(btn => btn.disabled = false);
+                button.textContent = status === 'APPROVED' ? 'Approve' : 'Reject';
+            }
+        }
+        
+        async function loadDashboardData() {
+            document.querySelectorAll('#dashboard-content p[id^="kpi-"]').forEach(el => el.textContent = '...');
+            const data = await apiFetch(`/admin/dashboard.php?wallet_type=${currentAdminFilter}`);
+            if (data && data.kpis) {
+                renderDashboard(data);
+            }
+        }
+        
+        async function loadAndRenderWithdrawals() {
+             const tableBody = document.getElementById('requests-table-body');
+             tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-8">Loading requests...</td></tr>';
+             
+             const params = new URLSearchParams(withdrawalFilters);
+             const requests = await apiFetch(`/admin/withdrawals.php?${params.toString()}`);
+             renderWithdrawals(requests);
+        }
+
+        async function loadAndRenderUsers() {
+            const tableBody = document.getElementById('users-table-body');
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-8">Loading users...</td></tr>';
+            
+            const params = new URLSearchParams(userFilters);
+            const users = await apiFetch(`/admin/users.php?${params.toString()}`);
+            
+            if (users) {
+                renderUsers(users);
+                // We populate the country filter based on the full, unfiltered user list
+                // To do this properly, we'd need a separate call or to do it once on page load.
+                // For now, let's populate it based on the currently displayed users.
+                if (Object.keys(userFilters).length === 0) { // Only populate on the first full load
+                   populateCountries(users);
+                }
+            }
+        }
+
+        // NEW: API function for updating user status
+        async function updateUserStatus(userId, isSuspended, button) {
+            button.disabled = true;
+            button.textContent = 'Updating...';
+            try {
+                const result = await apiFetch('/admin/update_user_status.php', {
+                    method: 'POST',
+                    body: JSON.stringify({ user_id: userId, is_suspended: isSuspended })
+                });
+                if (result.message) {
+                    showToast(result.message, 'success');
+                    closeAdminPopup();
+                    loadAndRenderUsers(); // Refresh the user list
+                } else {
+                    throw new Error('An unknown error occurred.');
+                }
+            } catch (error) {
+                showToast(`Error: ${error.message}`, 'error');
+                button.disabled = false;
+                // Reset button text based on the action
+                button.textContent = isSuspended ? 'Suspend User' : 'Re-activate User';
+            }
+        }
+        
+        // --- UPDATED: Renders the new KPI data ---
+        function renderDashboard(data,healthData) {
+            document.getElementById('admin-email').textContent = data.admin_email;
+            
+            const kpis = data.kpis;
+            document.getElementById('kpi-total-users').textContent = kpis.total_users;
+            document.getElementById('kpi-active-users').textContent = kpis.active_users;
+            document.getElementById('kpi-total-volume').textContent = kpis.total_volume.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            document.getElementById('kpi-pending-withdrawals').textContent = kpis.pending_withdrawals.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            
+            const profitEl = document.getElementById('kpi-platform-profit');
+            profitEl.textContent = kpis.platform_profit.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            profitEl.className = `text-3xl font-bold ${kpis.platform_profit >= 0 ? 'text-green-600' : 'text-red-600'}`;
+
+            document.getElementById('kpi-total-deposits').textContent = kpis.total_deposits.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            document.getElementById('kpi-approved-withdrawals').textContent = kpis.approved_withdrawals.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+            // NEW: Render the error count KPI
+            if (healthData) {
+                const errorEl = document.getElementById('kpi-error-count');
+                errorEl.textContent = healthData.error_count_24h;
+                if (healthData.error_count_24h > 0) {
+                    errorEl.className = 'text-3xl font-bold text-red-600 animate-pulse';
+                } else {
+                    errorEl.className = 'text-3xl font-bold text-green-600';
+                }
+            }
+        }
+        
+        // --- Function to render the withdrawals request ---
+        function renderWithdrawals(requests) {
+            const tableBody = document.getElementById('requests-table-body');
+            if (!requests || requests.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-8">No requests found.</td></tr>';
+                return;
+            }
+            tableBody.innerHTML = requests.map(req => {
+                const statusClass = {
+                    PENDING: 'bg-yellow-100 text-yellow-800',
+                    APPROVED: 'bg-green-100 text-green-800',
+                    REJECTED: 'bg-red-100 text-red-800'
+                }[req.status];
+
+                const actionButtons = req.status === 'PENDING' ? `
+                    <button onclick="processRequest(${req.id}, 'APPROVED', this)" class="text-green-600 hover:text-green-900">Approve</button>
+                    <button onclick="processRequest(${req.id}, 'REJECTED', this)" class="text-red-600 hover:text-red-900">Reject</button>
+                ` : `<span class="text-xs text-gray-400">Processed</span>`;
+
+                return `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${escapeHTML(req.email)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">$${parseFloat(req.amount).toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">${escapeHTML(req.status)}</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(req.requested_at).toLocaleString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">${actionButtons}</td>
+                </tr>
+            `}).join('');
+        }
+
+        // --- Function to render the users ---
+        function renderUsers(users) {
+            const tableBody = document.getElementById('users-table-body');
+            if (!users || users.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-8">No users found.</td></tr>';
+                return;
+            }
+            tableBody.innerHTML = users.map(user => {
+                const statusBadge = user.is_suspended 
+                    ? `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Suspended</span>`
+                    : `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>`;
+
+                return `<tr class="hover:bg-gray-50 cursor-pointer" onclick="openUserDetailsPopup(${user.id})">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHTML(user.email)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${escapeHTML(user.first_name || '')} ${escapeHTML(user.last_name || '')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHTML(user.country || 'N/A')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHTML(user.role)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHTML(user.provider)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(user.created_at).toLocaleDateString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${statusBadge}</td>
+                </tr>
+            `}).join('');
+        }
+
+        // --- Function to render the charts ---
+        function renderCharts(analyticsData) {
+            if (!analyticsData) return;
+            
+            // 1. User Registrations Bar Chart
+            const userCtx = document.getElementById('userRegistrationsChart').getContext('2d');
+            
+            const userLabels = [];
+            const userData = new Array(30).fill(0);
+            const today = new Date();
+            for (let i = 29; i >= 0; i--) {
+                const d = new Date(today);
+                d.setDate(today.getDate() - i);
+                userLabels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            }
+
+            analyticsData.user_registrations_daily.forEach(item => {
+                const date = new Date(item.registration_date + 'T00:00:00');
+                const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const index = userLabels.indexOf(label);
+                if (index > -1) {
+                    userData[index] = item.count;
+                }
+            });
+
+            if(userChart) userChart.destroy();
+            userChart = new Chart(userCtx, {
+                type: 'bar',
+                data: { labels: userLabels, datasets: [{ label: 'New Users', data: userData, backgroundColor: '#3b82f6' }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+
+            // 2. Trade Outcomes Pie Chart
+            const outcomeCtx = document.getElementById('tradeOutcomesChart').getContext('2d');
+            const outcomeData = analyticsData.trade_outcomes;
+            if(outcomeChart) outcomeChart.destroy();
+            outcomeChart = new Chart(outcomeCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Wins', 'Losses'],
+                    datasets: [{
+                        data: [outcomeData.win, outcomeData.lose],
+                        backgroundColor: ['#22c55e', '#ef4444'],
+                        borderColor: '#fff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // --- 3: Most Traded Pairs Chart ---
+            const pairVolumeCtx = document.getElementById('mostTradedPairsChart').getContext('2d');
+            const pairVolumeData = analyticsData.most_traded_pairs;
+            if(pairVolumeChart) pairVolumeChart.destroy();
+            pairVolumeChart = new Chart(pairVolumeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: pairVolumeData.map(p => p.pair),
+                    datasets: [{
+                        data: pairVolumeData.map(p => p.total_volume),
+                        backgroundColor: ['#3b82f6', '#ef4444', '#22c55e', '#f97316', '#8b5cf6'],
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // --- 4: Platform Win Rate by Pair Chart ---
+            const winRateCtx = document.getElementById('winRateByPairChart').getContext('2d');
+            const winRateData = analyticsData.win_rate_by_pair;
+            if(winRateChart) winRateChart.destroy();
+            winRateChart = new Chart(winRateCtx, {
+                type: 'bar',
+                data: {
+                    labels: winRateData.map(p => p.pair),
+                    datasets: [{
+                        label: 'Platform Win Rate (%)',
+                        data: winRateData.map(p => (p.platform_wins / p.total_trades) * 100),
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { max: 100, min: 0 } } }
+            });
+        }
+
+        // --- NEW: Function to render leaderboards and new chart ---
+        function renderUserAnalytics(data) {
+            if (!data) return;
+            // 1. Top Traders by Volume
+            const topTradersList = document.getElementById('top-traders-list');
+            topTradersList.innerHTML = `
+                <ul class="divide-y divide-gray-200">
+                    ${data.top_traders_by_volume.map((user, index) => `
+                        <li class="p-3 flex items-center space-x-4">
+                            <span class="text-sm font-semibold text-gray-500 w-4 text-center">${index + 1}.</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">${escapeHTML(user.email)}</p>
+                            </div>
+                            <div class="text-sm text-gray-800 font-semibold">${parseFloat(user.total_volume).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
+                        </li>
+                    `).join('') || '<p class="text-sm text-gray-500 p-3">No data available.</p>'}
+                </ul>
+            `;
+
+            // 2. Top Winners by P&L
+            const topWinnersList = document.getElementById('top-winners-list');
+            topWinnersList.innerHTML = `
+                <ul class="divide-y divide-gray-200">
+                    ${data.top_winners_by_pl.map((user, index) => `
+                        <li class="p-3 flex items-center space-x-4">
+                            <span class="text-sm font-semibold text-gray-500 w-4 text-center">${index + 1}.</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">${escapeHTML(user.email)}</p>
+                            </div>
+                            <div class="text-sm font-semibold ${user.net_pl >= 0 ? 'text-green-600' : 'text-red-600'}">${parseFloat(user.net_pl).toLocaleString('en-US', { style: 'currency', currency: 'USD', signDisplay: 'always' })}</div>
+                        </li>
+                    `).join('') || '<p class="text-sm text-gray-500 p-3">No data available.</p>'}
+                </ul>
+            `;
+
+            // 3. Top Countries Chart
+            const countriesCtx = document.getElementById('topCountriesChart').getContext('2d');
+            const countriesData = data.top_countries_by_user;
+            if(countriesChart) countriesChart.destroy();
+            countriesChart = new Chart(countriesCtx, {
+                type: 'bar',
+                data: {
+                    labels: countriesData.map(c => c.country),
+                    datasets: [{
+                        label: 'User Count',
+                        data: countriesData.map(c => c.user_count),
+                        backgroundColor: '#8b5cf6'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: {x: {ticks: {precision: 0}}} }
+            });
+        }
+
+         // --- NEW: Function to render risk analytics ---
+        function renderRiskAnalytics(data) {
+            if (!data) return;
+            // 1. Largest Winning Trades
+            const biggestWinsList = document.getElementById('biggest-wins-list');
+            biggestWinsList.innerHTML = `
+                <ul class="divide-y divide-gray-200">
+                    ${data.biggest_winning_trades.map((trade, index) => `
+                        <li class="p-3 flex items-start space-x-4">
+                            <span class="text-sm font-semibold text-gray-500 w-4 text-center pt-1">${index + 1}.</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">${trade.email}</p>
+                                <p class="text-xs text-gray-500">${trade.pair} on ${new Date(trade.created_at).toLocaleString()}</p>
+                            </div>
+                            <div class="text-sm font-semibold text-green-600">+${parseFloat(trade.profit_loss).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
+                        </li>
+                    `).join('') || '<p class="text-sm text-gray-500 p-3">No winning trades to display.</p>'}
+                </ul>
+            `;
+
+            // 2. Users with High Win Rates
+            const highWinRateList = document.getElementById('high-win-rate-list');
+            highWinRateList.innerHTML = `
+                <ul class="divide-y divide-gray-200">
+                    ${data.users_high_win_rate.map((user, index) => `
+                        <li class="p-3 flex items-center space-x-4">
+                            <span class="text-sm font-semibold text-gray-500 w-4 text-center">${index + 1}.</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">${user.email}</p>
+                            </div>
+                            <div class="text-sm font-semibold text-blue-600">${parseFloat(user.win_rate).toFixed(1)}% win rate</div>
+                        </li>
+                    `).join('') || '<p class="text-sm text-gray-500 p-3">No users meet the criteria.</p>'}
+                </ul>
+            `;
+        }
+
+        function searchUsers() {
+            // Read all filter values from the form
+            userFilters.search_email = document.getElementById('search-email').value;
+            userFilters.search_name = document.getElementById('search-name').value;
+            userFilters.filter_country = document.getElementById('filter-country').value;
+            userFilters.start_date = document.getElementById('start-date').value;
+            userFilters.end_date = document.getElementById('end-date').value;
+            loadAndRenderUsers();
+        }
+
+        function clearUserFilters() {
+            userFilters = {};
+            document.getElementById('search-email').value = '';
+            document.getElementById('search-name').value = '';
+            document.getElementById('filter-country').value = '';
+            document.getElementById('start-date').value = '';
+            document.getElementById('end-date').value = '';
+            loadAndRenderUsers();
+        }
+
+        // --- NEW: Function to populate the country dropdown ---
+        function populateCountries(users) {
+            const countryFilter = document.getElementById('filter-country');
+            // Get unique countries from the user list
+            const countries = [...new Set(users.map(user => user.country).filter(c => c))].sort();
+            
+            // Clear existing options (except the first "All")
+            while (countryFilter.options.length > 1) {
+                countryFilter.remove(1);
+            }
+
+            countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country;
+                option.textContent = country;
+                countryFilter.appendChild(option);
+            });
+        }
+
+        // --- NEW: Functions to handle withdrawal search ---
+        function searchWithdrawals() {
+            withdrawalFilters.search_email = document.getElementById('withdrawal-search-email').value;
+            withdrawalFilters.filter_status = document.getElementById('withdrawal-filter-status').value;
+            withdrawalFilters.start_date = document.getElementById('withdrawal-start-date').value;
+            withdrawalFilters.end_date = document.getElementById('withdrawal-end-date').value;
+            loadAndRenderWithdrawals();
+        }
+
+        function clearWithdrawalFilters() {
+            withdrawalFilters = { filter_status: 'PENDING' };
+            document.getElementById('withdrawal-search-email').value = '';
+            document.getElementById('withdrawal-filter-status').value = 'PENDING';
+            document.getElementById('withdrawal-start-date').value = '';
+            document.getElementById('withdrawal-end-date').value = '';
+            loadAndRenderWithdrawals();
+        }
+
+        // NEW: Close the new admin popup
+        function closeAdminPopup() {
+            document.getElementById('admin-popup-container').classList.remove('active');
+        }
+
+        async function fetchUserDetails(userId) {
+            return apiFetch(`/admin/user_details.php?user_id=${userId}`);
+        }
+
+        /**
+         * Opens a detailed, tabbed popup for a specific user.
+         * @param {number} userId The ID of the user to display.
+         */
+        async function openUserDetailsPopup(userId) {
+            const popupContainer = document.getElementById('admin-popup-container');
+            const popup = document.getElementById('admin-popup');
+            popup.innerHTML = `<div class="p-8 text-center text-gray-500">Loading user details...</div>`;
+            popupContainer.classList.add('active');
+            
+            const data = await fetchUserDetails(userId);
+
+            if (!data || data.error) {
+                popup.innerHTML = `<div class="p-8 text-center text-red-500">Could not load user details.</div>`;
+                return;
+            }
+
+            const { profile, wallets, trades, transactions } = data;
+
+            // --- Helper functions to build the HTML for each tab ---
+
+            const buildProfileHtml = (p) => `
+                <div class="space-y-4 p-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                        <div><strong class="text-gray-500 block">First Name:</strong> ${p.first_name || 'N/A'}</div>
+                        <div><strong class="text-gray-500 block">Last Name:</strong> ${p.last_name || 'N/A'}</div>
+                        <div><strong class="text-gray-500 block">Email:</strong> <span class="break-all">${p.email}</span></div>
+                        <div><strong class="text-gray-500 block">Birthday:</strong> ${p.birthday || 'N/A'}</div>
+                        <div><strong class="text-gray-500 block">Address:</strong> ${p.address || 'N/A'}</div>
+                        <div><strong class="text-gray-500 block">City:</strong> ${p.city || 'N/A'}</div>
+                        <div><strong class="text-gray-500 block">Postal Code:</strong> ${p.postal_code || 'N/A'}</div>
+                        <div><strong class="text-gray-500 block">Country:</strong> ${p.country || 'N/A'}</div>
+                        <div><strong class="text-gray-500 block">Role:</strong> <span class="capitalize">${p.role}</span></div>
+                        <div><strong class="text-gray-500 block">Provider:</strong> <span class="capitalize">${p.provider}</span></div>
+                        <div><strong class="text-gray-500 block">Joined:</strong> ${new Date(p.created_at).toLocaleString()}</div>
+                        <div><strong class="text-gray-500 block">Last Seen:</strong> ${p.last_seen_at ? new Date(p.last_seen_at).toLocaleString() : 'Never'}</div>
+                    </div>
+                </div>`;
+
+            const buildWalletsHtml = (w) => {
+                let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">';
+                w.forEach(wallet => {
+                    html += `
+                        <div class="p-4 rounded-lg ${wallet.type === 'real' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border'}">
+                            <p class="font-bold text-lg capitalize text-gray-800">${wallet.type} Wallet</p>
+                            <p class="text-2xl font-mono text-gray-900">${parseFloat(wallet.balance).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>
+                        </div>`;
+                });
+                html += '</div>';
+                return html;
+            };
+
+            const buildTradesTable = (tradeData) => {
+                if (tradeData.length === 0) return `<div class="h-full flex items-center justify-center text-gray-500">No trade history.</div>`;
+                const rows = tradeData.map(d => {
+                     const statusClass = d.status === 'WIN' ? 'bg-green-100 text-green-800' : d.status === 'LOSE' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800';
+                     return `
+                        <tr class="hover:bg-gray-50">
+                            <td data-label="Date" class="p-3">${new Date(d.created_at).toLocaleString()}</td>
+                            <td data-label="Pair" class="p-3 font-medium">${d.pair} (${d.direction})</td>
+                            <td data-label="Amount" class="p-3 font-mono">${parseFloat(d.bid_amount).toLocaleString('en-US', {style:'currency', currency:'USD'})}</td>
+                            <td data-label="P&L" class="p-3 font-mono ${d.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}">${parseFloat(d.profit_loss).toLocaleString('en-US', {style:'currency', currency:'USD', signDisplay:'always'})}</td>
+                            <td data-label="Status" class="p-3"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${d.status}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+                return `<div class="responsive-table h-full overflow-y-auto"><table class="w-full text-left text-sm"><thead class="bg-gray-50 sticky top-0"><tr class="border-b"><th class="p-3 font-semibold text-gray-700">Date</th><th class="p-3 font-semibold text-gray-700">Trade</th><th class="p-3 font-semibold text-gray-700">Amount</th><th class="p-3 font-semibold text-gray-700">P&L</th><th class="p-3 font-semibold text-gray-700">Status</th></tr></thead><tbody class="divide-y divide-gray-200">${rows}</tbody></table></div>`;
+            };
+
+            const buildLedgerTable = (transactionData) => {
+                if (transactionData.length === 0) return `<div class="h-full flex items-center justify-center text-gray-500">No transaction history.</div>`;
+                const rows = transactionData.map(tx => {
+                    const isCredit = tx.type.includes('CREDIT') || tx.type.includes('DEPOSIT');
+                    const typeClass = isCredit ? 'text-green-600' : 'text-red-600';
+                    const amount = parseFloat(tx.amount);
+                    const formattedAmount = amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                    return `
+                         <tr class="hover:bg-gray-50">
+                            <td data-label="Date" class="p-3">${new Date(tx.created_at).toLocaleString()}</td>
+                            <td data-label="Type" class="p-3">${tx.type.replace('_', ' ')}</td>
+                            <td data-label="Debit" class="p-3 font-mono text-right ${!isCredit ? typeClass : 'text-gray-400'}">${!isCredit ? formattedAmount : '-'}</td>
+                            <td data-label="Credit" class="p-3 font-mono text-right ${isCredit ? typeClass : 'text-gray-400'}">${isCredit ? formattedAmount : '-'}</td>
+                        </tr>
+                    `;
+                }).join('');
+                return `<div class="responsive-table h-full overflow-y-auto"><table class="w-full text-left text-sm"><thead class="bg-gray-50 sticky top-0"><tr class="border-b"><th class="p-3 font-semibold text-gray-700">Date</th><th class="p-3 font-semibold text-gray-700">Type</th><th class="p-3 font-semibold text-gray-700 text-right">Debit</th><th class="p-3 font-semibold text-gray-700 text-right">Credit</th></tr></thead><tbody class="divide-y divide-gray-200">${rows}</tbody></table></div>`;
+            };
+
+            const actionButton = profile.is_suspended
+                ? `<button onclick="updateUserStatus(${profile.id}, false, this)" class="w-full text-left text-sm p-2 bg-green-100 text-green-800 rounded hover:bg-green-200 font-semibold">Re-activate User</button>`
+                : `<button onclick="updateUserStatus(${profile.id}, true, this)" class="w-full text-left text-sm p-2 bg-red-100 text-red-800 rounded hover:bg-red-200 font-semibold">Suspend User</button>`;
+
+            // Main popup structure
+            popup.innerHTML = `
+                <header class="p-4 border-b flex justify-between items-center flex-shrink-0">
+                    <h3 class="text-lg font-semibold text-gray-800">User Details: <span class="font-mono text-blue-600">${profile.email}</span></h3>
+                    <button onclick="closeAdminPopup()" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+                </header>
+                <div class="flex-1 p-4 overflow-y-auto">
+                    <div class="p-1.5 flex space-x-2 rounded-lg bg-gray-100 mb-4">
+                        <button onclick="showUserDetailTab('profile', this)" class="popup-tab active flex-1 py-1.5 text-sm font-semibold rounded-md">Profile</button>
+                        <button onclick="showUserDetailTab('wallets', this)" class="popup-tab flex-1 py-1.5 text-sm font-semibold rounded-md">Wallets</button>
+                        <button onclick="showUserDetailTab('trades', this)" class="popup-tab flex-1 py-1.5 text-sm font-semibold rounded-md">Trades</button>
+                        <button onclick="showUserDetailTab('ledger', this)" class="popup-tab flex-1 py-1.5 text-sm font-semibold rounded-md">Ledger</button>
+                    </div>
+                    <div class="h-[50vh]">
+                        <div id="profile-content" class="user-detail-content">${buildProfileHtml(profile)}</div>
+                        <div id="wallets-content" class="user-detail-content hidden">${buildWalletsHtml(wallets)}</div>
+                        <div id="trades-content" class="user-detail-content hidden h-full">${buildTradesTable(trades)}</div>
+                        <div id="ledger-content" class="user-detail-content hidden h-full">${buildLedgerTable(transactions)}</div>
+                    </div>
+                </div>
+                <footer class="p-4 border-t bg-gray-50 flex-shrink-0">
+                    <h4 class="text-sm font-semibold mb-2 text-gray-600">Admin Actions</h4>
+                    <div class="space-y-2">
+                        ${actionButton}
+                    </div>
+                </footer>
+            `;
+        }
+
+        // Add this new helper function to your script as well
+        function showUserDetailTab(tabName, clickedElement) {
+            document.querySelectorAll('.user-detail-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.popup-tab').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabName + '-content').classList.remove('hidden');
+            clickedElement.classList.add('active');
+        }
+
+    </script>
+</body>
+</html>

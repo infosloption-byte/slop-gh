@@ -1,0 +1,662 @@
+html, body {
+  overflow-x: hidden;
+}
+
+/* --- Global Custom Scrollbar Styles --- */
+/* For Webkit-based browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;  /* Width of vertical scrollbar */
+  height: 6px; /* Height of horizontal scrollbar */
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #4b5563; /* A dark gray for the scrollbar handle */
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280; /* Lighter gray on hover */
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 transparent; /* thumb and track color */
+}
+
+/* Base Styles */
+.accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+.accordion-content.open { max-height: 800px; }
+#historyWrapper.open { 
+    max-height: 300px; /* A sensible height for the list */
+    overflow-y: auto;  /* This will add the scrollbar when needed */
+}
+.rotate { transform: rotate(90deg); transition: transform 0.3s ease; }
+
+.popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* background: white; */ /* REMOVE default background */
+    /* padding: 24px; */ /* REMOVE default padding */
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    width: 500px; /* Default width */
+    max-width: 90vw;
+    /* color: #1f2937; */ /* REMOVE default color */
+    max-height: 85vh; /* Max height before scrolling */
+    display: flex; /* Use flexbox */
+    flex-direction: column; /* Stack header/content */
+    overflow: hidden; /* Prevent content spill before scroll div */
+}
+
+#popupContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+#popupContainer.active {
+    display: flex;
+    opacity: 1;
+}
+
+/* Replace existing #popupContent rules */
+/* Base layout styles ONLY */
+#popupContent {
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    width: 500px; /* Default width, overridden by JS if needed */
+    max-width: 90vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* REMOVED background, color, padding defaults */
+}
+
+/* --- NEW: UNIFIED Dark Theme Class --- */
+.popup-dark-theme {
+    background: #1f2937; /* bg-gray-800 */
+    color: #e5e7eb; /* text-gray-200 */
+    padding: 0; /* No padding on the main box */
+}
+/* Ensure text/inputs inside dark theme are styled correctly */
+.popup-dark-theme h3,
+.popup-dark-theme label,
+.popup-dark-theme span,
+.popup-dark-theme p,
+.popup-dark-theme button:not(.bg-blue-600):not(.bg-red-600) { /* Target most text */
+    color: #fff; /* text-gray-200 */
+}
+.popup-dark-theme input,
+.popup-dark-theme select {
+    background-color: #374151; /* bg-gray-700 */
+    border-color: #4b5563; /* border-gray-600 */
+    color: #e5e7eb; /* text-gray-200 */
+    border-radius: 0.375rem; /* rounded-md */
+    padding: 0.5rem 0.75rem; /* px-3 py-2 */
+    width: 100%;
+    margin-top: 0.25rem; /* mt-1 */
+    font-size: 16px; /* Ensure mobile zoom doesn't trigger */
+}
+.popup-dark-theme input::placeholder {
+    color: #9ca3af; /* text-gray-400 */
+}
+.popup-dark-theme a {
+    color: #60a5fa; /* text-blue-400 */
+}
+.popup-dark-theme a:hover {
+    color: #93c5fd; /* text-blue-300 */
+}
+.popup-dark-theme .popup-close-button {
+     color: #9ca3af; /* text-gray-400 */
+}
+.popup-dark-theme .popup-close-button:hover {
+     color: #ffffff; /* text-white */
+}
+/* Divider color */
+.popup-dark-theme .popup-divider {
+    border-color: #4b5563; /* border-gray-600 */
+}
+
+.dark-popup-tab-header{
+    background-color: #374151;
+    border-color: #4b5563;
+}
+
+.scroll-vertically{
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+/* Class for the scrollable content area */
+.popup-scroll-content {
+    overflow-y: auto;
+    flex-grow: 1; /* Allows this section to take available space */
+    padding: 1rem; /* Default padding for content area */
+}
+
+/* Keep .popup-large */
+.popup-large #popupContent {
+     width: 800px;
+     max-width: 95vw;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn-loader { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.5); border-top-color: #fff;
+  border-radius: 50%; animation: spin 1s linear infinite; display: inline-block;
+  vertical-align: middle; margin-right: 8px; }
+button:disabled { cursor: not-allowed; opacity: 0.6; }
+.nav-link { position: relative; transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out; color: #9ca3af; }
+.nav-link:hover { background-color: #374151; color: #ffffff; }
+.nav-link.active { background-color: #374151; color: #ffffff; font-weight: 600; }
+.nav-link.active::before { content: ''; position: absolute; left: 0; top: 25%; height: 50%; width: 4px; background-color: #3b82f6; border-radius: 0 4px 4px 0; }
+.accordion-button { position: relative; transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out; color: #9ca3af; }
+.accordion-button:hover { background-color: #374151; color: #ffffff; }
+.accordion-button.active { background-color: #374151; color: #ffffff; font-weight: 600; }
+.accordion-button.active::before { content: ''; position: absolute; left: 0; top: 25%; height: 50%; width: 4px; background-color: #3b82f6; border-radius: 0 4px 4px 0; }
+
+/* Desktop Styles */
+@media (min-width: 768px) {
+  #leftPanel.sidebar-minimized { width: 80px !important; }
+  #leftPanel.sidebar-minimized nav > div a span.sidebar-label,
+  #leftPanel.sidebar-minimized h2.sidebar-label { display: none; }
+  
+  #rightPanelToggle svg { transition: transform 0.3s ease-in-out; }
+  
+  body.right-panel-minimized #rightPanel { width: 80px !important; padding: 1rem; }
+  body.right-panel-minimized #rightPanel .panel-label,
+  body.right-panel-minimized #rightPanel .accordion-content { display: none; }
+  body.right-panel-minimized #rightPanelToggle svg { transform: rotate(180deg); }
+  body.right-panel-minimized #rightPanel .accordion-button { justify-content: center; }
+  body.right-panel-minimized #rightPanel .accordion-button .ml-2 { margin-left: 0; }
+  
+  /* NEW: Right panel width control */
+  #rightPanel {
+    width: 330px;
+    transition: width 0.3s ease-in-out;
+  }
+}
+
+@media (max-width: 767px) {
+  #rightPanel {
+    position: fixed !important;
+    right: 0;
+    top: 0;
+    width: 330px;
+    z-index: 40;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  #rightPanel:not(.hidden) {
+    transform: translateX(0);
+  }
+}
+
+.active-filter {
+    background-color: #3b82f6;
+    color: white;
+    font-weight: 600;
+}
+
+/* Responsive table styles */
+@media (max-width: 640px) {
+    .responsive-table table, .responsive-table thead, .responsive-table tbody, .responsive-table th, .responsive-table td, .responsive-table tr {
+        display: block;
+    }
+    .responsive-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    .responsive-table tr {
+        border-bottom: 1px solid #374151;
+        margin-bottom: 0.5rem;
+    }
+    .responsive-table td {
+        border: none;
+        position: relative;
+        padding-left: 50%;
+        text-align: right;
+    }
+    .responsive-table td:before {
+        position: absolute;
+        top: 50%;
+        left: 0.75rem;
+        transform: translateY(-50%);
+        width: 45%;
+        padding-right: 0.75rem;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 600;
+        content: attr(data-label);
+    }
+}
+
+.popup-tab {
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+.popup-tab.active {
+    border-color: #3b82f6;
+    background: #3b82f6;
+    color: #3b82f6;
+    font-weight: 600;
+}
+.popup-tab:not(.active) {
+    color: #000;
+}
+.popup-tab:not(.active):hover {
+    background-color: #4b5563;
+    color: white;
+}
+
+.security-nav-link {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    color: #4b5563;
+    transition: background-color 0.2s;
+}
+.security-nav-link:hover:not(.active):not(.disabled) {
+/*    background-color: #f3f4f6;*/
+    margin-left: 10px;
+}
+.security-nav-link.active {
+/*    background-color: #eff6ff;*/
+    color: #2563eb;
+    font-weight: 600;
+}
+.security-nav-link.disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.notification-item {
+    padding: 0.75rem 1rem;
+    transition: background-color 0.2s;
+}
+.notification-item:hover {
+    background-color: #f9fafb;
+}
+.notification-item.unread {
+    background-color: #eff6ff;
+}
+
+#indicatorsMenu {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#indicatorsBtn:hover ~ #indicatorsMenu,
+#indicatorsMenu:hover {
+    display: block;
+}
+
+/* Chart Popup Styles */
+.chart-popup {
+    max-width: 500px;
+    width: 100%;
+}
+
+.chart-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.chart-popup-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.chart-popup-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-popup-body {
+    margin-bottom: 1.5rem;
+}
+
+.chart-section-label {
+    display: block;
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+}
+
+.chart-type-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.chart-type-btn {
+    background: #4b5563;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 1rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #9ca3af;
+}
+
+.chart-type-btn:hover {
+    background: #374151;
+}
+
+.chart-type-btn.active {
+    background: #3b82f6;
+    color: white;
+}
+
+.chart-icon {
+    width: 32px;
+    height: 32px;
+}
+
+.chart-type-btn span {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.timeframe-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+.timeframe-btn {
+    background: #4b5563;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 1rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #9ca3af;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.timeframe-btn:hover {
+    background: #374151;
+}
+
+.timeframe-btn.active {
+    background: #3b82f6;
+    color: white;
+}
+
+.timeframe-unit {
+    font-size: 0.75rem;
+    font-weight: 400;
+    margin-top: 0.25rem;
+}
+
+.chart-confirm-btn {
+    width: 100%;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.chart-confirm-btn:hover {
+    background: #2563eb;
+}
+
+/* Indicators Popup */
+.indicators-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.indicator-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.indicator-tab {
+    background: #e5e7eb;
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.indicator-tab.active {
+    background: #3b4c68;
+    color: white;
+}
+
+.indicators-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.indicator-item {
+    background: #4b5563;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
+}
+
+.indicator-item:hover {
+    background: #374151;
+}
+
+.indicator-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.25rem;
+}
+
+.indicator-desc {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.indicator-arrow {
+    width: 20px;
+    height: 20px;
+    color: #9ca3af;
+}
+
+.indicator-active-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    color: #22c55e;
+    font-size: 1.5rem;
+}
+
+@media (max-width: 640px) {
+    .chart-type-grid, .timeframe-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* --- Dark Theme for Chart Popups ONLY --- */
+
+/* 1. Makes the main popup window dark, ONLY if it has our special class */
+.popup.chart-popup-theme {
+    background-color: #2d3748; /* Dark slate background */
+    color: #e5e7eb;            /* Light gray text */
+}
+
+/* 2. Adjusts text colors ONLY inside the dark popup */
+.chart-popup-theme .chart-popup-header h3 {
+    color: #ffffff; /* White title text */
+}
+
+.chart-popup-theme .chart-popup-close, 
+.chart-popup-theme .chart-section-label {
+    color: #9ca3af; /* Lighter gray for secondary text */
+}
+
+/* --- Timeframe Horizontal Scroll & Smaller Buttons --- */
+
+/* 1. Change the grid container to a scrolling flex row */
+.timeframe-grid {
+    display: flex;          /* Use flexbox instead of grid */
+    overflow-x: auto;       /* Enable horizontal scrolling on overflow */
+    white-space: nowrap;      /* Keep all buttons on a single line */
+    padding-bottom: 8px;    /* Add some space for the scrollbar */
+}
+
+/* 2. Make the timeframe buttons smaller and more compact */
+.timeframe-btn {
+    padding: 0.5rem 1rem;   /* Adjust padding to be less tall and slightly wider */
+    font-size: 1rem;        /* Reduce the main number's font size */
+    font-weight: 500;
+}
+
+.timeframe-unit {
+    font-size: 0.65rem;     /* Make the "sec", "min" text even smaller */
+}
+
+/* 3. (Optional) Style the scrollbar for a cleaner look */
+.timeframe-grid::-webkit-scrollbar {
+    height: 4px;
+}
+.timeframe-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+.timeframe-grid::-webkit-scrollbar-thumb {
+    background-color: #4b5563;
+    border-radius: 4px;
+}
+
+/* Style for number inputs in dark popups */
+.chart-popup-theme input[type="number"] {
+    color-scheme: dark;
+}
+
+/* Makes ONLY the chart-related popups skinnier */
+.popup.chart-popup-theme {
+    max-width: 380px;
+}
+
+/* --- Wheel Time Picker Styles --- */
+.time-picker-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    height: 200px; /* The total height of the picker */
+    padding: 0 1rem;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+}
+.time-picker-overlay {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    height: 40px; /* Height of a single item */
+    border-top: 2px solid #3b82f6;
+    border-bottom: 2px solid #3b82f6;
+    pointer-events: none; /* Allows scrolling through the overlay */
+}
+.time-picker-column {
+    height: 100%;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+}
+.time-picker-column::-webkit-scrollbar {
+    display: none; /* Hide scrollbars */
+}
+.time-picker-column {
+    -ms-overflow-style: none;  /* Hide scrollbars for IE and Edge */
+    scrollbar-width: none;  /* Hide scrollbars for Firefox */
+}
+.time-picker-item, .time-picker-label {
+    height: 40px; /* Must match overlay height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    scroll-snap-align: center;
+}
+.time-picker-label {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    font-weight: 600;
+}
+
+/* --- Deal Details Popup Styles --- */
+.deal-details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    text-align: left;
+    border-radius: 0.5rem;
+}
+.deal-detail-item .label {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-bottom: 0.25rem;
+}
+.deal-detail-item .value {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.deal-profit { color: #22c55e; }
+.deal-loss { color: #ef4444; }

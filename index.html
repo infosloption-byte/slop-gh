@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SL Option - Trade Smarter, Faster, Safer</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/favicon/site.webmanifest">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .logo-gradient {
+            background: linear-gradient(to right, #2563eb, #1e40af);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .fade-in-on-scroll { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+        .fade-in-on-scroll.visible { opacity: 1; transform: translateY(0); }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.15), transparent 40%);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            border-radius: 0.75rem;
+        }
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="w-full min-h-screen bg-slate-50 text-gray-800">
+
+    <!-- Navbar -->
+    <nav id="navbar" class="fixed top-0 w-full z-50 transition-all duration-300 py-4 bg-transparent">
+        <div class="container mx-auto px-4 md:px-6 max-w-7xl">
+            <div class="flex justify-between items-center">
+                <a href="#" class="text-2xl font-bold logo-gradient">SL Option</a>
+                
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="nav-item text-white hover:text-blue-300 transition-colors font-medium">Features</a>
+                    <a href="#how-it-works" class="nav-item text-white hover:text-blue-300 transition-colors font-medium">How It Works</a>
+                    <a href="#assets" class="nav-item text-white hover:text-blue-300 transition-colors font-medium">Markets</a>
+                    <div class="relative group">
+                        <button class="nav-item flex items-center text-white hover:text-blue-300 transition-colors font-medium">
+                            Resources 
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1 transition-transform group-hover:rotate-180"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-10">
+                            <a href="terms-and-conditions.html" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">Terms of Service</a>
+                            <a href="privacy-policy.html" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">Privacy Policy</a>
+                            <a href="refund-and-cancellation-policy.html" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">Refund Policy</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="app.html" class="nav-item px-4 py-2 text-white hover:text-blue-300 transition-colors font-semibold">Login</a>
+                    <a href="app.html" class="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all shadow-md hover:shadow-lg font-semibold">Sign Up</a>
+                </div>
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-button" class="text-white">
+                        <svg id="menu-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="block"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                        <svg id="close-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden bg-white mt-4 rounded-lg shadow-lg p-4 absolute left-0 right-0 mx-4">
+                <div class="flex flex-col space-y-3">
+                    <a href="#features" class="text-gray-700 hover:text-blue-600 transition-colors py-2">Features</a>
+                    <a href="#how-it-works" class="text-gray-700 hover:text-blue-600 transition-colors py-2">How It Works</a>
+                    <a href="#assets" class="text-gray-700 hover:text-blue-600 transition-colors py-2">Markets</a>
+                    <a href="#" class="text-gray-700 hover:text-blue-600 transition-colors py-2">Resources</a>
+                    <div class="pt-4 border-t border-gray-200 flex flex-col space-y-3">
+                        <a href="app.html" class="px-4 py-2 text-blue-600 hover:text-blue-800 transition-colors text-center font-semibold">Login</a>
+                        <a href="app.html" class="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all shadow-md hover:shadow-lg text-center font-semibold">Sign Up</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="relative w-full bg-slate-900 text-white overflow-hidden pt-32 pb-24">
+            <div class="absolute inset-0 bg-grid-slate-800 [mask-image:linear-gradient(to_bottom,white_0%,transparent_100%)]"></div>
+            <div class="container mx-auto px-4 md:px-6 relative z-10 max-w-7xl">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div class="space-y-8 text-center lg:text-left">
+                        <h1 class="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight tracking-tighter">
+                            <span class="block">Trade with Precision,</span>
+                            <span class="block bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Speed, and Security.</span>
+                        </h1>
+                        <p class="text-lg md:text-xl text-slate-300 max-w-xl mx-auto lg:mx-0">Welcome to SLOption, the platform designed for the modern trader. Access global markets, utilize powerful tools, and trade with confidence on a secure, high-speed interface.</p>
+                        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 pt-4 justify-center lg:justify-start">
+                            <a href="app.html" class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-all shadow-lg hover:shadow-xl flex items-center justify-center font-semibold text-lg">Start Trading Now</a>
+                        </div>
+                    </div>
+                    <div class="lg:h-[500px] md:h-[400px] h-[300px] relative">
+                        <div class="w-full h-full rounded-lg p-4 relative overflow-hidden">
+                            <canvas id="heroChart" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section (Light Theme) -->
+        <section id="features" class="py-24 bg-white">
+            <div class="container mx-auto px-4 md:px-6 max-w-7xl">
+                <div class="text-center mb-16 fade-in-on-scroll">
+                    <h2 class="text-4xl font-bold mb-4 text-slate-800">Why Trade With Us</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">Our platform is engineered from the ground up to provide speed, security, and powerful features that give you an edge.</p>
+                </div>
+                <div id="features-container" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Feature cards will be injected here -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- How It Works Section (Dark Theme) -->
+        <section id="how-it-works" class="py-24 bg-slate-900 text-white">
+            <div class="container mx-auto px-4 md:px-6 max-w-7xl">
+                <div class="text-center mb-20 fade-in-on-scroll">
+                    <h2 class="text-4xl font-bold mb-4">Get Started in 3 Simple Steps</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-16 items-start">
+                    <!-- Step 1 -->
+                    <div class="text-center fade-in-on-scroll">
+                        <div class="relative mb-6">
+                            <div class="flex items-center justify-center mx-auto bg-slate-800 border-2 border-slate-700 text-blue-400 w-24 h-24 rounded-full text-3xl font-bold shadow-lg z-10 relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="17" y1="11" x2="23" y2="11"></line></svg>
+                            </div>
+                        </div>
+                        <h3 class="text-2xl font-semibold mb-3 text-white">1. Create Account</h3>
+                        <p class="text-slate-400">Sign up for free in minutes with your email or Google account.</p>
+                    </div>
+                    <!-- Step 2 -->
+                    <div class="text-center fade-in-on-scroll" style="animation-delay: 0.2s;">
+                        <div class="relative mb-6">
+                            <div class="flex items-center justify-center mx-auto bg-slate-800 border-2 border-slate-700 text-blue-400 w-24 h-24 rounded-full text-3xl font-bold shadow-lg z-10 relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13V3m0 18v-2M17 10l-5 5-5-5"></path><path d="M2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2z"></path></svg>
+                            </div>
+                        </div>
+                        <h3 class="text-2xl font-semibold mb-3 text-white">2. Deposit Funds</h3>
+                        <p class="text-slate-400">Securely add funds to your real wallet using our trusted payment gateways.</p>
+                    </div>
+                    <!-- Step 3 -->
+                    <div class="text-center fade-in-on-scroll" style="animation-delay: 0.4s;">
+                        <div class="relative mb-6">
+                            <div class="flex items-center justify-center mx-auto bg-slate-800 border-2 border-slate-700 text-blue-400 w-24 h-24 rounded-full text-3xl font-bold shadow-lg z-10 relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M7 12v5"></path><path d="M12 7v10"></path><path d="M17 14v3"></path></svg>
+                            </div>
+                        </div>
+                        <h3 class="text-2xl font-semibold mb-3 text-white">3. Start Trading</h3>
+                        <p class="text-slate-400">Access live markets and start placing trades on our intuitive platform.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="security" class="py-24 bg-slate-50">
+            <div class="container mx-auto px-4 md:px-6 max-w-7xl">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div class="fade-in-on-scroll">
+                        <h2 class="text-4xl font-bold mb-6 text-slate-800">Your Security is Our Priority</h2>
+                        <p class="text-lg text-gray-600 mb-8">We are committed to providing a secure trading environment. All financial transactions on SLOption are handled by our trusted partner, Payhere, a Central Bank of Sri Lanka approved payment gateway.</p>
+                        <ul class="space-y-4">
+                            <li class="flex items-start">
+                                <svg class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <div>
+                                    <h4 class="font-semibold text-slate-800">PCI DSS Compliant</h4>
+                                    <p class="text-gray-600">Your card details are never stored on our servers. All payments are processed on PCI DSS Level 1 certified secure backends.</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                <div>
+                                    <h4 class="font-semibold text-slate-800">SSL Encryption</h4>
+                                    <p class="text-gray-600">All communication between your browser and our servers is protected with end-to-end SSL encryption.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="fade-in-on-scroll flex items-center justify-center lg:justify-end">
+                        <div class="bg-white rounded-xl border shadow-md p-6 flex flex-col items-center justify-center h-[400px] w-full max-w-[600px]">
+                            <img src="assets/images/payhere-logo.png" alt="Payhere Logo" class="h-48 w-full object-cover rounded-md">
+                            <p class="text-sm text-gray-500 mt-4 text-center">Official Payment Partner</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Global Access Section -->
+        <section id="global-access" class="py-24 bg-white">
+            <div class="container mx-auto px-4 md:px-6 max-w-7xl">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div class="fade-in-on-scroll">
+                        <h2 class="text-4xl font-bold mb-6 text-slate-800">Trade From Anywhere in the World</h2>
+                        <p class="text-lg text-gray-600 mb-8">Our platform is globally accessible, allowing you to trade on your terms, wherever you are. With 24/7 market access and a fully responsive interface, you'll never miss an opportunity.</p>
+                        <a href="app.html" class="text-blue-600 font-semibold hover:underline">Explore Markets &rarr;</a>
+                    </div>
+                    <div class="fade-in-on-scroll">
+                        <img src="assets/images/platform-ui.png" onerror="this.onerror=null;this.src='https://placehold.co/600x400/e2e8f0/1e293b?text=Global+Map';" alt="Global Access Map" class="rounded-xl">
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Asset Showcase Section -->
+        <section id="assets" class="py-20 bg-slate-50">
+            <div class="container mx-auto px-4 md:px-6 max-w-7xl">
+                <div class="text-center mb-16 fade-in-on-scroll">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4">Popular Crypto Markets</h2>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">Explore some of the most popular digital assets available on our platform.</p>
+                </div>
+                <div id="asset-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Asset cards will be inserted here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Call to Action -->
+        <section class="py-24 bg-slate-800 text-white">
+            <div class="container mx-auto px-4 md:px-6 text-center max-w-7xl">
+                <h2 class="text-4xl font-bold mb-6">Ready to Start Trading?</h2>
+                <p class="text-xl mb-8 text-slate-300 max-w-3xl mx-auto">Create your account in minutes and start trading with a free demo account or deposit funds to trade with real money.</p>
+                <a href="app.html" class="px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-all shadow-lg hover:shadow-xl flex items-center font-semibold text-xl w-max mx-auto">Get Started for Free</a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-300">
+        <div class="container mx-auto px-4 md:px-6 py-12 max-w-7xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div><h3 class="text-2xl font-bold mb-6 logo-gradient">SL Option</h3><p class="mb-6 text-sm">Advanced trading platform for forex, stocks, crypto, and commodities. Trade smarter with SL Option.</p><div class="flex space-x-4"><a href="#" class="text-gray-400 hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg></a><a href="#" class="text-gray-400 hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg></a><a href="#" class="text-gray-400 hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg></a><a href="#" class="text-gray-400 hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a></div></div>
+                <div><h4 class="text-lg font-semibold text-white mb-4">Quick Links</h4><ul class="space-y-2 text-sm"><li><a href="#" class="hover:text-white transition-colors">About Us</a></li><li><a href="#features" class="hover:text-white transition-colors">Features</a></li><li><a href="#assets" class="hover:text-white transition-colors">Markets</a></li><li><a href="app.html" class="hover:text-white transition-colors">Login / Sign Up</a></li></ul></div>
+                <div><h4 class="text-lg font-semibold text-white mb-4">Legal</h4><ul class="space-y-2 text-sm"><li><a href="privacy-policy.html" target="_blank" class="hover:text-white transition-colors">Privacy Policy</a></li><li><a href="terms-and-conditions.html" target="_blank" class="hover:text-white transition-colors">Terms of Service</a></li><li><a href="refund-and-cancellation-policy.html" target="_blank" class="hover:text-white transition-colors">Refund Policy</a></li><li><a href="risk-disclosure.html" target="_blank" class="hover:text-white transition-colors">Risk Disclosure</a></li></ul></div>
+                <div><h4 class="text-lg font-semibold text-white mb-4">Contact Us</h4><div class="space-y-4 text-sm"><div class="flex items-start"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3 flex-shrink-0 mt-0.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg><span>support@sl-option.com</span></div><div class="flex items-start"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3 flex-shrink-0 mt-0.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg><span>+1 (555) 123-4567</span></div></div></div>
+            </div>
+            <div class="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-sm mb-4 md:mb-0">&copy; <span id="current-year"></span> SL Option. All rights reserved.</p>
+                <div class="flex items-center">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" class="h-8 mx-2"/>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" class="h-8 mx-2"/>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- Navbar Functionality ---
+        function setupNavbar() {
+            const navbar = document.getElementById('navbar');
+            const navItems = navbar.querySelectorAll('.nav-item');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const menuIcon = document.getElementById('menu-icon');
+            const closeIcon = document.getElementById('close-icon');
+            
+            function updateNavColors(isScrolled) {
+                if (isScrolled) {
+                    navbar.classList.add('bg-white', 'shadow-md', 'py-3');
+                    navbar.classList.remove('bg-transparent', 'py-4');
+                    navItems.forEach(item => {
+                        item.classList.add('text-gray-700');
+                        item.classList.remove('text-white');
+                    });
+                    mobileMenuButton.classList.add('text-gray-700');
+                    mobileMenuButton.classList.remove('text-white');
+                } else {
+                    navbar.classList.add('bg-transparent', 'py-4');
+                    navbar.classList.remove('bg-white', 'shadow-md', 'py-3');
+                     navItems.forEach(item => {
+                        item.classList.remove('text-gray-700');
+                        item.classList.add('text-white');
+                    });
+                    mobileMenuButton.classList.remove('text-gray-700');
+                    mobileMenuButton.classList.add('text-white');
+                }
+            }
+            
+            window.addEventListener('scroll', () => updateNavColors(window.scrollY > 20));
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+                menuIcon.classList.toggle('hidden');
+                closeIcon.classList.toggle('hidden');
+            });
+            updateNavColors(window.scrollY > 20); // Initial check
+        }
+
+        // --- Hero Chart Animation ---
+        function setupHeroChart() {
+            const heroChartCtx = document.getElementById('heroChart').getContext('2d');
+            let heroChartData = Array.from({length: 20}, () => 1400 + Math.random() * 200);
+            const btcPriceEl = document.getElementById('btc-price');
+
+            const heroChart = new Chart(heroChartCtx, {
+                type: 'line',
+                data: {
+                    labels: heroChartData.map((_, i) => i),
+                    datasets: [{
+                        data: heroChartData,
+                        borderColor: '#60a5fa',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: (context) => {
+                            const chartCtx = context.chart.ctx;
+                            const gradient = chartCtx.createLinearGradient(0, 0, 0, context.chart.height);
+                            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                            gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
+                            return gradient;
+                        },
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: { x: { display: false }, y: { display: false } }
+                }
+            });
+
+            setInterval(() => {
+                const lastPrice = heroChartData[heroChartData.length - 1];
+                const newPrice = lastPrice + (Math.random() - 0.5) * 40;
+                heroChartData.push(Math.max(1100, Math.min(1700, newPrice)));
+                if (heroChartData.length > 30) heroChartData.shift();
+                heroChart.data.labels = heroChartData.map((_, i) => i);
+                heroChart.update('silent');
+                if(btcPriceEl) btcPriceEl.textContent = `$${Math.round(newPrice)}`;
+            }, 1500);
+        }
+
+        // --- Dynamic Content Injection ---
+        function setupDynamicContent() {
+            const features = [
+                { icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2m4.24 14.24L12 12V7h1.5v4.24l3.74 3.75Z"/></svg>', title: 'Instant Execution', description: 'Execute trades in milliseconds with our high-speed trading infrastructure.'},
+                { icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12c5.16-1.26 9-6.45 9-12V5zm-1 16l-4-4l1.41-1.41L11 14.17l6.59-6.59L19 9z"/></svg>', title: 'Secure Transactions', description: 'Bank-level encryption and security protocols to protect your funds and data.'},
+                { icon: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"><path fill="currentColor" d="M19 8a7 7 0 1 0-7 7a7 7 0 0 0 7-7m-7-5a5 5 0 1 1-5 5a5 5 0 0 1 5-5m-6 9a4 4 0 0 0-4 4a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1a4 4 0 0 0-4-4Z"/></svg>', title: 'Demo Account', description: 'Practice with $10,000 virtual funds before trading with real money.'},
+            ];
+            document.getElementById('features-container').innerHTML = features.map(f => `<div class="relative bg-slate-800 p-8 rounded-xl border border-slate-700 feature-card fade-in-on-scroll"><div class="relative z-10"><div class="bg-blue-600/20 text-blue-400 w-16 h-16 rounded-full flex items-center justify-center mb-6">${f.icon}</div><h3 class="text-xl font-semibold mb-3 text-white">${f.title}</h3><p class="text-slate-300">${f.description}</p></div></div>`).join('');
+        }
+
+        // --- Asset Showcase Logic ---
+        function setupAssetTabs() {
+            const assetData = {
+                crypto: [{ name: 'BTC/USD', price: '42,568', change: '+2.4%', positive: true, data: [41500, 41800, 42100, 42300, 42568] }, { name: 'ETH/USD', price: '2,285', change: '+1.8%', positive: true, data: [2240, 2255, 2270, 2280, 2285] }, { name: 'SOL/USD', price: '108.45', change: '+3.2%', positive: true, data: [105.1, 106.3, 107.2, 108.0, 108.45] }, { name: 'XRP/USD', price: '0.6142', change: '-0.5%', positive: false, data: [0.6172, 0.6165, 0.6155, 0.6148, 0.6142] }],
+            };
+            const assetContainer = document.getElementById('asset-container');
+            let miniCharts = [];
+
+            function renderAssetCards(category) {
+                assetContainer.innerHTML = '';
+                miniCharts.forEach(chart => chart.destroy());
+                miniCharts = [];
+                
+                assetData[category].forEach((asset, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white rounded-xl shadow-md border border-gray-100 p-4 hover:shadow-lg transition-shadow fade-in-on-scroll';
+                    card.innerHTML = `<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">${asset.name}</h3><div class="text-sm font-medium ${asset.positive ? 'text-green-600' : 'text-red-600'}">${asset.change}</div></div><div class="h-20"><canvas id="asset-chart-${category}-${index}"></canvas></div><div class="flex justify-between items-center mt-4"><div class="text-xl font-semibold">$${asset.price}</div><a href="app.html" class="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors">Trade</a></div>`;
+                    assetContainer.appendChild(card);
+                    
+                    setTimeout(() => {
+                        const chartCtx = document.getElementById(`asset-chart-${category}-${index}`).getContext('2d');
+                        const gradient = chartCtx.createLinearGradient(0, 0, 0, 80);
+                        const color = asset.positive ? '#10b981' : '#ef4444';
+                        gradient.addColorStop(0, asset.positive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)');
+                        gradient.addColorStop(1, asset.positive ? 'rgba(16, 185, 129, 0)' : 'rgba(239, 68, 68, 0)');
+
+                        const chart = new Chart(chartCtx, {
+                            type: 'line',
+                            data: { labels: asset.data.map((_, i) => i), datasets: [{ data: asset.data, borderColor: color, borderWidth: 2, fill: true, backgroundColor: gradient, pointRadius: 0, tension: 0.4 }] },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } } }
+                        });
+                        miniCharts.push(chart);
+                    }, 0);
+                });
+            }
+            renderAssetCards('crypto');
+        }
+
+        // --- Intersection Observer for fade-in animations ---
+        function setupScrollAnimations() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.fade-in-on-scroll').forEach(el => observer.observe(el));
+        }
+
+        // --- Footer Year ---
+        function setupCurrentYear() {
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+        }
+
+        // --- Initialize Everything ---
+        setupNavbar();
+        setupHeroChart();
+        setupDynamicContent();
+        setupAssetTabs();
+        setupScrollAnimations();
+        setupCurrentYear();
+    });
+</script>
+</body>
+</html>
