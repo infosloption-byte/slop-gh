@@ -21,12 +21,17 @@ require_once __DIR__ . '/../config/helpers.php';
 // Load all helper functions
 require_once __DIR__ . '/../api/v1/services/PusherService.php';
 
-// Load all helper functions
+// Load all services
 require_once __DIR__ . '/../api/v1/services/StripeService.php';
+require_once __DIR__ . '/../api/v1/services/PaymentProviderFactory.php';
+require_once __DIR__ . '/WithdrawalConfig.php';
 
 // Create a global instance of the Pusher service
 $pusherService = new PusherService($log);
 
 // Create a global instance of the Stripe service
 $stripeService = new StripeService($log);
+
+// Create a global instance of the Payment Provider Factory
+$paymentFactory = new PaymentProviderFactory($log);
 ?>
