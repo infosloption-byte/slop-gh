@@ -1,0 +1,59 @@
+<!-- 
+    onboarding-refresh.html
+    User lands here if the onboarding link expires
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Expired - SL Option</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-gray-800 rounded-lg shadow-xl p-8 text-center">
+            <div class="mb-6">
+                <svg class="w-20 h-20 mx-auto text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            
+            <h1 class="text-2xl font-bold mb-4">Session Expired</h1>
+            <p class="text-gray-300 mb-6">
+                Your verification session has expired. Don't worry - let's restart the process.
+            </p>
+            
+            <button id="restartBtn" onclick="restartOnboarding(this)" 
+                class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
+                Restart Verification
+            </button>
+        </div>
+    </div>
+
+    <script>
+        async function restartOnboarding(button) {
+            button.disabled = true;
+            button.innerHTML = '<span>Loading...</span>';
+            
+            try {
+                const response = await fetch('/api/v1/payments/stripe/connect/get_onboarding_link.php', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.onboarding_url) {
+                    window.location.href = data.onboarding_url;
+                } else {
+                    throw new Error('Failed to get onboarding link');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+                button.disabled = false;
+                button.innerHTML = 'Restart Verification';
+            }
+        }
+    </script>
+</body>
+</html>

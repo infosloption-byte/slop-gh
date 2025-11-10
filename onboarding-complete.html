@@ -1,0 +1,44 @@
+<!-- 
+    onboarding-complete.html
+    User lands here after completing Stripe onboarding
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Complete - SL Option</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-gray-800 rounded-lg shadow-xl p-8 text-center">
+            <div class="mb-6">
+                <svg class="w-20 h-20 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            
+            <h1 class="text-3xl font-bold mb-4">Verification Complete!</h1>
+            <p class="text-gray-300 mb-6">
+                Your payout account has been set up successfully. You can now add payout cards and request withdrawals.
+            </p>
+            
+            <button onclick="window.location.href='/app.html'" 
+                class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
+                Continue to Dashboard
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Sync the account status
+        fetch('/api/v1/payments/stripe/connect/sync_status.php', {
+            method: 'POST',
+            credentials: 'include'
+        }).then(() => {
+            console.log('Account status synced');
+        });
+    </script>
+</body>
+</html>

@@ -127,7 +127,7 @@ async function rechargeDemoWallet() {
 }
 
 async function processDeposit(amount, token) {
-    return apiFetch('/payments/create_deposit.php', {
+    return apiFetch('/payments/deposits/create_deposit.php', {
         method: 'POST',
         body: JSON.stringify({ amount, token })
     });
@@ -139,7 +139,7 @@ async function processDeposit(amount, token) {
  * @returns {Promise<object>} The JSON response from the server.
  */
 async function createWithdrawal(amount) {
-    return apiFetch('/payments/create_withdrawal.php', {
+    return apiFetch('/payments/withdrawals/create_withdrawal.php', {
         method: 'POST',
         body: JSON.stringify({ amount })
     });
@@ -177,8 +177,43 @@ async function createConnectAccount() {
     });
 }
 
+/**
+ * Check payout status with better error handling
+ */
 async function checkPayoutStatus() {
-    return apiFetch('/payments/payout_status.php');
+    try {
+        const response = await fetch(`${API_BASE_URL}/payments/status/payout_status.php`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            console.warn('Payout status check failed:', response.status);
+            return {
+                payout_enabled: false,
+                requirements: {
+                    has_connect_account: false,
+                    connect_verified: false,
+                    has_payout_card: false
+                }
+            };
+        }
+
+        const data = await response.json();
+        console.log('Payout status:', data);
+        return data;
+        
+    } catch (error) {
+        console.error('Check payout status error:', error);
+        return {
+            payout_enabled: false,
+            requirements: {
+                has_connect_account: false,
+                connect_verified: false,
+                has_payout_card: false
+            }
+        };
+    }
 }
 
 /**
@@ -255,41 +290,144 @@ async function markNotificationsAsRead() {
 }
 
 /**
- * API functions for card management
+ * Get all payout cards for the current user
+ * @returns {Promise<Object>} List of payout cards
  */
 async function getPayoutCards() {
-    return apiFetch('/payments/list_payout_cards.php');
+    try {
+        const response = await fetch('/api/v1/payments/get_payout_cards.php', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to fetch payout cards');
+        }
+        
+        return data;
+        
+    } catch (error) {
+        console.error('getPayoutCards error:', error);
+        throw error;
+    }
 }
 
+/**
+ * Add a payout card to user's account
+ * @param {string} cardToken - Stripe card token (tok_xxx)
+ * @param {string} cardHolderName - Name on the card
+ * @returns {Promise<Object>} API response
+ */
 async function addPayoutCard(cardToken, cardHolderName) {
-    return apiFetch('/payments/add_payout_card.php', {
-        method: 'POST',
-        body: JSON.stringify({
-            card_token: cardToken,
-            card_holder_name: cardHolderName
-        })
-    });
+    try {
+        console.log('addPayoutCard called with:', { 
+            cardToken: cardToken ? 'present' : 'missing', 
+            cardHolderName 
+        });
+        
+        if (!cardToken) {
+            throw new Error('Card token is required');
+        }
+        
+        if (!cardHolderName || cardHolderName.trim() === '') {
+            throw new Error('Cardholder name is required');
+        }
+        
+        const response = await fetch('/api/v1/payments/stripe/cards/add_card.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                card_token: cardToken,
+                card_holder_name: cardHolderName.trim()
+            })
+        });
+        
+        console.log('addPayoutCard response status:', response.status);
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Non-JSON response:', text);
+            throw new Error('Server returned an invalid response');
+        }
+        
+        const data = await response.json();
+        console.log('addPayoutCard response data:', data);
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to add payout card');
+        }
+        
+        return data;
+        
+    } catch (error) {
+        console.error('addPayoutCard error:', error);
+        throw error;
+    }
 }
 
+/**
+ * Set default payout card
+ */
 async function setDefaultCard(cardId) {
-    return apiFetch('/payments/set_default_card.php', {
-        method: 'POST',
-        body: JSON.stringify({ card_id: cardId })
-    });
+    try {
+        const response = await fetch(`${API_BASE_URL}/payments/stripe/cards/set_default_card.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ card_id: cardId })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to set default card');
+        }
+
+        return await response.json();
+        
+    } catch (error) {
+        console.error('Set default card error:', error);
+        throw error;
+    }
 }
 
+/**
+ * Remove a payout card
+ */
 async function removePayoutCard(cardId) {
-    return apiFetch('/payments/remove_payout_card.php', {
-        method: 'POST',
-        body: JSON.stringify({ card_id: cardId })
-    });
+    try {
+        const response = await fetch(`${API_BASE_URL}/payments/stripe/cards/remove_card.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ card_id: cardId })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to remove card');
+        }
+
+        return await response.json();
+        
+    } catch (error) {
+        console.error('Remove payout card error:', error);
+        throw error;
+    }
 }
+
 
 /**
  * Create withdrawal request (manual or automated)
  */
 async function createWithdrawalRequest(withdrawalData) {
-    return apiFetch('/payments/create_withdrawal.php', {
+    return apiFetch('/payments/withdrawals/create_withdrawal.php', {
         method: 'POST',
         body: JSON.stringify(withdrawalData)
     });
@@ -340,4 +478,85 @@ async function processWithdrawal(requestId, status, notes, proofImage = null) {
 async function getWithdrawalRequests(filters = {}) {
     const params = new URLSearchParams(filters);
     return apiFetch(`/admin/withdrawals.php?${params}`);
+}
+
+/**
+ * Sync Connect account status after onboarding
+ */
+async function syncConnectAccountStatus() {
+    return apiFetch('/payments/stripe/connect/sync_status.php', {
+        method: 'POST'
+    });
+}
+
+/**
+ * API function for checking capabilities
+ */
+async function checkMyCapabilities() {
+    try {
+        const response = await fetch('/api/v1/payments/stripe/capabilities/check_and_fix.php', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to check capabilities');
+        }
+
+        return data;
+        
+    } catch (error) {
+        console.error('Check capabilities error:', error);
+        throw error;
+    }
+}
+
+async function createExpressAccount() {
+    return apiFetch('/payments/stripe/connect/create_express_account.php', {
+        method: 'POST'
+    });
+}
+
+async function getOnboardingLink() {
+    return apiFetch('/payments/stripe/connect/get_onboarding_link.php');
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        addPayoutCard,
+        checkPayoutStatus,
+        getPayoutCards,
+        removePayoutCard,
+        setDefaultCard
+    };
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////// New Fucntion ///////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Get all connected payout methods for the user
+ * @returns {Promise<Array>} List of payout methods
+ */
+async function getPayoutMethods() {
+    return apiFetch('/payments/payout_methods/list_methods.php');
+}
+
+/**
+ * Adds a simple payout method (like Skrill or Binance)
+ * @param {string} methodType - 'binance' or 'skrill'
+ * @param {string} identifier - The user's email or ID for that service
+ * @returns {Promise<Object>} API response
+ */
+async function addSimpleMethod(methodType, identifier) {
+    return apiFetch('/payments/payout_methods/add_simple_method.php', {
+        method: 'POST',
+        body: JSON.stringify({ method_type: methodType, identifier: identifier })
+    });
 }

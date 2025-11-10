@@ -385,8 +385,30 @@
     <div id="toast" class="toast fixed top-6 right-6 z-50 bg-red-600 text-white px-5 py-3 rounded-lg hidden shadow-lg"></div>
 
     <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/chart.js"></script>
-    <script src="js/main.js"></script>
+    
+    <script src="js/api.js"></script>           <!-- 1. API layer -->
+    <script src="js/core.js"></script>          <!-- 2. Core initialization -->
+    <script src="js/chart.js"></script>         <!-- 3. Chart functions -->
+    <script src="js/trading.js"></script>       <!-- 4. Trading operations -->
+    <script src="js/analytics.js"></script>     <!-- 5. Analytics -->
+    <script src="js/popups.js"></script>        <!-- 6. Popup utilities -->
+    <script src="js/auth.js"></script>          <!-- 7. Authentication -->
+    <script src="js/profile.js"></script>       <!-- 8. Profile management -->
+    <script src="js/payment.js"></script>       <!-- 9. Payment functions -->
+
+    <script>
+        // Hide preloader once everything is loaded
+        window.addEventListener('load', function() {
+            const preloader = document.getElementById('preloader');
+            if (preloader) {
+                setTimeout(() => {
+                    preloader.classList.add('fade-out');
+                    setTimeout(() => {
+                        preloader.style.display = 'none';
+                    }, 500);
+                }, 1000); // Show for at least 1 second for better UX
+            }
+        });
+    </script>
 </body>
 </html>

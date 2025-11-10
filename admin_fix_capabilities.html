@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Connect Capabilities - Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .warning-box strong {
+            color: #856404;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .warning-box ul {
+            color: #856404;
+            margin-left: 20px;
+            font-size: 14px;
+        }
+        
+        .warning-box li {
+            margin-bottom: 5px;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .btn:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .results.visible {
+            display: block;
+        }
+        
+        .summary {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .summary h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .stat:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .stat-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .user-results {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        
+        .user-item {
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .user-item:last-child {
+            border-bottom: none;
+        }
+        
+        .user-item.updated {
+            background: #d4edda;
+        }
+        
+        .user-item.already_ok {
+            background: #d1ecf1;
+        }
+        
+        .user-item.error {
+            background: #f8d7da;
+        }
+        
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .user-email {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-badge.updated {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-badge.already_ok {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .status-badge.error {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .user-details {
+            font-size: 13px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .next-steps {
+            background: #e7f3ff;
+            border: 2px solid #0066cc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .next-steps h4 {
+            color: #0066cc;
+            margin-bottom: 10px;
+        }
+        
+        .next-steps ol {
+            margin-left: 20px;
+            color: #333;
+        }
+        
+        .next-steps li {
+            margin-bottom: 8px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix Connect Capabilities</h1>
+        <p class="subtitle">Admin Tool - Run this once to fix existing Stripe Connect accounts</p>
+        
+        <div class="warning-box">
+            <strong>⚠️ Important Information:</strong>
+            <ul>
+                <li>This will update ALL Stripe Connect accounts to request card_payments and transfers capabilities</li>
+                <li>Accounts may need to complete additional verification after this update</li>
+                <li>This is safe to run multiple times</li>
+                <li>Only run this if users are getting "application does not support this endpoint" errors</li>
+            </ul>
+        </div>
+        
+        <button class="btn" id="runFixBtn" onclick="runFix()">
+            Run Capability Fix
+        </button>
+        
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing accounts... This may take a moment.</p>
+        </div>
+        
+        <div id="results" class="results">
+            <div class="summary">
+                <h3>📊 Summary</h3>
+                <div class="stat">
+                    <span class="stat-label">Total Accounts:</span>
+                    <span class="stat-value" id="stat-total">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Updated:</span>
+                    <span class="stat-value" id="stat-updated" style="color: #28a745;">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Already OK:</span>
+                    <span class="stat-value" id="stat-ok" style="color: #17a2b8;">-</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Errors:</span>
+                    <span class="stat-value" id="stat-errors" style="color: #dc3545;">-</span>
+                </div>
+            </div>
+            
+            <div class="user-results" id="user-results"></div>
+            
+            <div class="next-steps">
+                <h4>📋 Next Steps:</h4>
+                <ol id="next-steps-list"></ol>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function runFix() {
+            const btn = document.getElementById('runFixBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            
+            // Confirm action
+            if (!confirm('This will update all Stripe Connect accounts. Continue?')) {
+                return;
+            }
+            
+            btn.disabled = true;
+            loading.style.display = 'block';
+            results.classList.remove('visible');
+            
+            try {
+                const response = await fetch('/api/v1/payments/stripe/capabilities/admin_fix_all.php', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to run fix');
+                }
+                
+                // Update summary
+                document.getElementById('stat-total').textContent = data.summary.total_accounts;
+                document.getElementById('stat-updated').textContent = data.summary.updated;
+                document.getElementById('stat-ok').textContent = data.summary.already_ok;
+                document.getElementById('stat-errors').textContent = data.summary.errors;
+                
+                // Display user results
+                const userResultsDiv = document.getElementById('user-results');
+                userResultsDiv.innerHTML = '';
+                
+                data.results.forEach(user => {
+                    const userDiv = document.createElement('div');
+                    userDiv.className = `user-item ${user.status}`;
+                    
+                    let statusText = user.status;
+                    if (user.status === 'already_ok') statusText = 'already ok';
+                    
+                    let detailsHtml = `
+                        <div>User ID: ${user.user_id}</div>
+                        <div>Account: ${user.connect_account}</div>
+                    `;
+                    
+                    if (user.current_capabilities) {
+                        detailsHtml += `<div>Current: card_payments=${user.current_capabilities.card_payments}, transfers=${user.current_capabilities.transfers}</div>`;
+                    }
+                    
+                    if (user.updated_capabilities) {
+                        detailsHtml += `<div>Updated: card_payments=${user.updated_capabilities.card_payments}, transfers=${user.updated_capabilities.transfers}</div>`;
+                    }
+                    
+                    if (user.error) {
+                        detailsHtml += `<div style="color: #dc3545;">Error: ${user.error}</div>`;
+                    }
+                    
+                    userDiv.innerHTML = `
+                        <div class="user-header">
+                            <span class="user-email">${user.email}</span>
+                            <span class="status-badge ${user.status}">${statusText}</span>
+                        </div>
+                        <div class="user-details">${detailsHtml}</div>
+                    `;
+                    
+                    userResultsDiv.appendChild(userDiv);
+                });
+                
+                // Display next steps
+                const nextStepsList = document.getElementById('next-steps-list');
+                nextStepsList.innerHTML = '';
+                
+                if (data.next_steps) {
+                    data.next_steps.forEach(step => {
+                        const li = document.createElement('li');
+                        li.textContent = step;
+                        nextStepsList.appendChild(li);
+                    });
+                }
+                
+                results.classList.add('visible');
+                
+                alert('✓ Fix completed! Check the results below.');
+                
+            } catch (error) {
+                console.error('Fix error:', error);
+                alert('Error: ' + error.message);
+                btn.disabled = false;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -76,7 +76,7 @@ html, body {
 #popupContent {
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    width: 500px; /* Default width, overridden by JS if needed */
+    width: 400px; /* Default width, overridden by JS if needed */
     max-width: 90vw;
     max-height: 85vh;
     display: flex;
@@ -660,3 +660,16 @@ button:disabled { cursor: not-allowed; opacity: 0.6; }
 }
 .deal-profit { color: #22c55e; }
 .deal-loss { color: #ef4444; }
+
+.spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
