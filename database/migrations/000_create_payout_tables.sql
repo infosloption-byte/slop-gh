@@ -5,6 +5,8 @@
 -- ============================================================
 
 -- Create user_payout_methods table if not exists
+-- NOTE: This table likely already exists in your database
+-- This is a safe CREATE IF NOT EXISTS that won't overwrite existing data
 CREATE TABLE IF NOT EXISTS user_payout_methods (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -12,10 +14,10 @@ CREATE TABLE IF NOT EXISTS user_payout_methods (
     display_name VARCHAR(255) NOT NULL,
     account_identifier VARCHAR(255) NOT NULL COMMENT 'Email, ID, etc',
     payout_card_id INT NULL COMMENT 'For stripe_card type',
-    is_default BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_default TINYINT(1) DEFAULT 0,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX idx_upm_user_method (user_id, method_type),
     INDEX idx_upm_user_active (user_id, is_active),
@@ -24,19 +26,24 @@ CREATE TABLE IF NOT EXISTS user_payout_methods (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create payout_cards table if not exists (for Stripe)
+-- NOTE: This table likely already exists in your database
+-- This is a safe CREATE IF NOT EXISTS that won't overwrite existing data
 CREATE TABLE IF NOT EXISTS payout_cards (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    stripe_connect_account_id VARCHAR(255) NOT NULL,
-    external_account_id VARCHAR(255) NOT NULL,
-    brand VARCHAR(50) NULL,
-    last4 VARCHAR(4) NULL,
-    country VARCHAR(2) DEFAULT 'US',
-    is_default BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    stripe_card_id VARCHAR(255) NULL,
+    stripe_connect_account_id VARCHAR(255) NULL,
+    external_account_id VARCHAR(255) NULL,
+    card_brand VARCHAR(50) NULL,
+    card_last4 VARCHAR(4) NULL,
+    card_holder_name VARCHAR(255) NULL,
+    card_country VARCHAR(2) DEFAULT 'US',
+    is_default TINYINT(1) DEFAULT 0,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    UNIQUE KEY unique_external_account (external_account_id),
     INDEX idx_payout_cards_user (user_id),
+    INDEX idx_payout_cards_default (user_id, is_default),
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
