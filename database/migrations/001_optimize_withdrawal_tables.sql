@@ -4,36 +4,71 @@
 -- Date: 2025-01-10
 -- ============================================================
 
+-- MySQL doesn't support CREATE INDEX IF NOT EXISTS directly
+-- We'll use a procedure to safely add indexes
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS AddIndexIfNotExists$$
+CREATE PROCEDURE AddIndexIfNotExists(
+    IN tableName VARCHAR(128),
+    IN indexName VARCHAR(128),
+    IN indexColumns VARCHAR(255)
+)
+BEGIN
+    DECLARE indexExists INT DEFAULT 0;
+
+    SELECT COUNT(*) INTO indexExists
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = tableName
+    AND INDEX_NAME = indexName;
+
+    IF indexExists = 0 THEN
+        SET @sql = CONCAT('CREATE INDEX ', indexName, ' ON ', tableName, ' (', indexColumns, ')');
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+        SELECT CONCAT('✓ Created index: ', indexName) AS status;
+    ELSE
+        SELECT CONCAT('⊘ Index already exists: ', indexName) AS status;
+    END IF;
+END$$
+
+DELIMITER ;
+
 -- Add indexes to withdrawal_requests table for better performance
-CREATE INDEX IF NOT EXISTS idx_wr_user_status ON withdrawal_requests(user_id, status);
-CREATE INDEX IF NOT EXISTS idx_wr_status_created ON withdrawal_requests(status, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_wr_created_at ON withdrawal_requests(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_wr_processed_at ON withdrawal_requests(processed_at DESC);
-CREATE INDEX IF NOT EXISTS idx_wr_user_created ON withdrawal_requests(user_id, created_at DESC);
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_user_status', 'user_id, status');
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_status_created', 'status, requested_at');
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_created_at', 'requested_at');
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_processed_at', 'processed_at');
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_user_created', 'user_id, requested_at');
 
 -- Add indexes to transactions table
-CREATE INDEX IF NOT EXISTS idx_trans_user_type ON transactions(user_id, type);
-CREATE INDEX IF NOT EXISTS idx_trans_reference ON transactions(type, reference_id);
-CREATE INDEX IF NOT EXISTS idx_trans_gateway ON transactions(gateway_transaction_id);
-CREATE INDEX IF NOT EXISTS idx_trans_created ON transactions(created_at DESC);
+CALL AddIndexIfNotExists('transactions', 'idx_trans_user_type', 'user_id, type');
+CALL AddIndexIfNotExists('transactions', 'idx_trans_reference', 'type, reference_id');
+CALL AddIndexIfNotExists('transactions', 'idx_trans_gateway', 'gateway_transaction_id');
+CALL AddIndexIfNotExists('transactions', 'idx_trans_created', 'created_at');
 
--- Add indexes to user_payout_methods table
-CREATE INDEX IF NOT EXISTS idx_upm_user_method ON user_payout_methods(user_id, method_type);
-CREATE INDEX IF NOT EXISTS idx_upm_user_active ON user_payout_methods(user_id, is_active);
+-- Add indexes to user_payout_methods table (if table exists)
+CALL AddIndexIfNotExists('user_payout_methods', 'idx_upm_user_method', 'user_id, method_type');
+CALL AddIndexIfNotExists('user_payout_methods', 'idx_upm_user_active', 'user_id, is_active');
 
 -- Add indexes to wallets table (if not already exist)
-CREATE INDEX IF NOT EXISTS idx_wallets_user_type ON wallets(user_id, type);
+CALL AddIndexIfNotExists('wallets', 'idx_wallets_user_type', 'user_id, type');
 
 -- Add composite index for daily limit checks
-CREATE INDEX IF NOT EXISTS idx_wr_user_date_status ON withdrawal_requests(user_id, DATE(created_at), status);
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_user_date_status', 'user_id, requested_at, status');
 
 -- Add index for admin dashboard queries
-CREATE INDEX IF NOT EXISTS idx_wr_status_processed_by ON withdrawal_requests(status, processed_by);
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_status_processed_by', 'status, processed_by');
+
+-- Clean up procedure
+DROP PROCEDURE IF EXISTS AddIndexIfNotExists;
 
 -- Optimize table storage
 OPTIMIZE TABLE withdrawal_requests;
 OPTIMIZE TABLE transactions;
-OPTIMIZE TABLE user_payout_methods;
 OPTIMIZE TABLE wallets;
 
 -- ============================================================

@@ -5,44 +5,117 @@
 -- Note: This updates YOUR existing database structure
 -- ============================================================
 
+-- Helper procedure to safely add columns
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS AddColumnIfNotExists$$
+CREATE PROCEDURE AddColumnIfNotExists(
+    IN tableName VARCHAR(128),
+    IN columnName VARCHAR(128),
+    IN columnDefinition VARCHAR(512)
+)
+BEGIN
+    DECLARE colExists INT DEFAULT 0;
+
+    SELECT COUNT(*) INTO colExists
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = tableName
+    AND COLUMN_NAME = columnName;
+
+    IF colExists = 0 THEN
+        SET @sql = CONCAT('ALTER TABLE `', tableName, '` ADD COLUMN `', columnName, '` ', columnDefinition);
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+        SELECT CONCAT('✓ Added column: ', columnName) AS status;
+    ELSE
+        SELECT CONCAT('⊘ Column already exists: ', columnName) AS status;
+    END IF;
+END$$
+
+DROP PROCEDURE IF EXISTS AddIndexIfNotExists$$
+CREATE PROCEDURE AddIndexIfNotExists(
+    IN tableName VARCHAR(128),
+    IN indexName VARCHAR(128),
+    IN indexColumns VARCHAR(255)
+)
+BEGIN
+    DECLARE indexExists INT DEFAULT 0;
+
+    SELECT COUNT(*) INTO indexExists
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = tableName
+    AND INDEX_NAME = indexName;
+
+    IF indexExists = 0 THEN
+        SET @sql = CONCAT('CREATE INDEX `', indexName, '` ON `', tableName, '` (', indexColumns, ')');
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+        SELECT CONCAT('✓ Created index: ', indexName) AS status;
+    ELSE
+        SELECT CONCAT('⊘ Index already exists: ', indexName) AS status;
+    END IF;
+END$$
+
+DELIMITER ;
+
 -- 1. ADD MISSING COLUMNS TO user_payout_methods
-ALTER TABLE `user_payout_methods`
-ADD COLUMN IF NOT EXISTS `is_active` TINYINT(1) NOT NULL DEFAULT 1 AFTER `is_default`,
-ADD COLUMN IF NOT EXISTS `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`;
+CALL AddColumnIfNotExists('user_payout_methods', 'is_active', 'TINYINT(1) NOT NULL DEFAULT 1 AFTER `is_default`');
+CALL AddColumnIfNotExists('user_payout_methods', 'updated_at', 'TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`');
 
 -- 2. UPDATE user_payout_methods method_type ENUM to include 'manual'
-ALTER TABLE `user_payout_methods`
-MODIFY COLUMN `method_type` ENUM('stripe_card','paypal','binance','skrill','manual') NOT NULL COMMENT 'The type of payout service';
+-- Note: This will fail silently if 'manual' already exists
+SET @currentEnum = (
+    SELECT COLUMN_TYPE
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'user_payout_methods'
+    AND COLUMN_NAME = 'method_type'
+);
 
--- 3. Keep created_at as DATETIME (matching your existing schema)
--- NOTE: Your database uses DATETIME for created_at, which is fine. We'll keep it consistent.
+SET @hasManual = IF(@currentEnum LIKE '%manual%', 1, 0);
 
--- 4. ADD INDEX for user_payout_methods
-ALTER TABLE `user_payout_methods`
-ADD INDEX IF NOT EXISTS `idx_user_method` (`user_id`, `method_type`),
-ADD INDEX IF NOT EXISTS `idx_user_active` (`user_id`, `is_active`);
+SET @alterEnumSQL = IF(@hasManual = 0,
+    'ALTER TABLE `user_payout_methods` MODIFY COLUMN `method_type` ENUM(''stripe_card'',''paypal'',''binance'',''skrill'',''manual'') NOT NULL COMMENT ''The type of payout service''',
+    'SELECT ''⊘ ENUM already includes manual'' AS status'
+);
 
--- 5. payout_cards table check
+PREPARE stmt FROM @alterEnumSQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 3. ADD INDEXES for user_payout_methods
+CALL AddIndexIfNotExists('user_payout_methods', 'idx_user_method', '`user_id`, `method_type`');
+CALL AddIndexIfNotExists('user_payout_methods', 'idx_user_active', '`user_id`, `is_active`');
+
+-- 4. payout_cards table check
 -- NOTE: Your payout_cards table already has all required columns:
 -- - card_brand, card_last4, card_holder_name, card_country, is_default, is_active
 -- No modifications needed for this table!
 
--- 6. ADD INDEXES to withdrawal_requests for performance (if not exist)
-CREATE INDEX IF NOT EXISTS `idx_wr_user_status` ON `withdrawal_requests`(`user_id`, `status`);
-CREATE INDEX IF NOT EXISTS `idx_wr_status_created` ON `withdrawal_requests`(`status`, `requested_at` DESC);
-CREATE INDEX IF NOT EXISTS `idx_wr_created_at` ON `withdrawal_requests`(`requested_at` DESC);
-CREATE INDEX IF NOT EXISTS `idx_wr_processed_at` ON `withdrawal_requests`(`processed_at` DESC);
-CREATE INDEX IF NOT EXISTS `idx_wr_user_created` ON `withdrawal_requests`(`user_id`, `requested_at` DESC);
+-- 5. ADD INDEXES to withdrawal_requests for performance
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_user_status', '`user_id`, `status`');
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_status_created', '`status`, `requested_at`');
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_created_at', '`requested_at`');
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_processed_at', '`processed_at`');
+CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_user_created', '`user_id`, `requested_at`');
 
--- 7. ADD INDEXES to transactions table
-CREATE INDEX IF NOT EXISTS `idx_trans_user_type` ON `transactions`(`user_id`, `type`);
-CREATE INDEX IF NOT EXISTS `idx_trans_gateway` ON `transactions`(`gateway_transaction_id`);
-CREATE INDEX IF NOT EXISTS `idx_trans_created` ON `transactions`(`created_at` DESC);
+-- 6. ADD INDEXES to transactions table
+CALL AddIndexIfNotExists('transactions', 'idx_trans_user_type', '`user_id`, `type`');
+CALL AddIndexIfNotExists('transactions', 'idx_trans_gateway', '`gateway_transaction_id`');
+CALL AddIndexIfNotExists('transactions', 'idx_trans_created', '`created_at`');
 
--- 8. ADD INDEXES to wallets table (if not exist)
-CREATE INDEX IF NOT EXISTS `idx_wallets_user_type` ON `wallets`(`user_id`, `type`);
+-- 7. ADD INDEXES to wallets table
+CALL AddIndexIfNotExists('wallets', 'idx_wallets_user_type', '`user_id`, `type`');
 
--- 9. CREATE user_withdrawal_limits table for daily/monthly tracking
+-- Clean up procedures
+DROP PROCEDURE IF EXISTS AddColumnIfNotExists;
+DROP PROCEDURE IF EXISTS AddIndexIfNotExists;
+
+-- 8. CREATE user_withdrawal_limits table for daily/monthly tracking
 CREATE TABLE IF NOT EXISTS `user_withdrawal_limits` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL,
@@ -58,7 +131,7 @@ CREATE TABLE IF NOT EXISTS `user_withdrawal_limits` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 10. CREATE user_withdrawal_monthly table
+-- 9. CREATE user_withdrawal_monthly table
 CREATE TABLE IF NOT EXISTS `user_withdrawal_monthly` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL,
@@ -74,7 +147,7 @@ CREATE TABLE IF NOT EXISTS `user_withdrawal_monthly` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 11. POPULATE initial data for daily limits from existing withdrawals
+-- 10. POPULATE initial data for daily limits from existing withdrawals
 INSERT INTO `user_withdrawal_limits` (`user_id`, `date`, `total_amount`, `withdrawal_count`)
 SELECT
     `user_id`,
@@ -87,7 +160,7 @@ ON DUPLICATE KEY UPDATE
     `total_amount` = VALUES(`total_amount`),
     `withdrawal_count` = VALUES(`withdrawal_count`);
 
--- 12. POPULATE monthly data
+-- 11. POPULATE monthly data
 INSERT INTO `user_withdrawal_monthly` (`user_id`, `year`, `month`, `total_amount`, `withdrawal_count`)
 SELECT
     `user_id`,
@@ -140,7 +213,7 @@ SELECT
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_SCHEMA = DATABASE()
 AND TABLE_NAME = 'user_payout_methods'
-AND COLUMN_NAME IN ('is_active', 'updated_at')
+AND COLUMN_NAME IN ('is_active', 'updated_at', 'method_type')
 ORDER BY ORDINAL_POSITION;
 
-SELECT '✅ Migration completed successfully!' as status;
+SELECT '✅ Migration 003 completed successfully!' as status;
