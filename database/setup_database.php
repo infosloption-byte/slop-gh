@@ -23,47 +23,69 @@ function runMigration($conn, $migration_file, $log) {
 
     $sql = file_get_contents($migration_file);
 
-    // Split by semicolon (simple approach, won't work with all SQL)
-    $statements = array_filter(
-        array_map('trim', explode(';', $sql)),
-        function($statement) {
-            // Skip comments and empty statements
-            return !empty($statement) &&
-                   strpos($statement, '--') !== 0 &&
-                   strpos($statement, '/*') !== 0;
-        }
-    );
+    // Remove comments for cleaner execution
+    $sql = preg_replace('/^\s*--.*$/m', '', $sql);
 
-    $success_count = 0;
-    $error_count = 0;
+    // For MySQL 8, use multi_query to handle stored procedures and DELIMITER
+    if ($conn->multi_query($sql)) {
+        $result_count = 0;
+        $error_count = 0;
 
-    foreach ($statements as $statement) {
-        if (empty(trim($statement))) continue;
-
-        try {
-            if ($conn->query($statement)) {
-                $success_count++;
-                echo "✓ Statement executed successfully\n";
+        // Process all results
+        do {
+            // Store first result set
+            if ($result = $conn->store_result()) {
+                // Output any SELECT results
+                while ($row = $result->fetch_assoc()) {
+                    // Check if this is a status message from our procedures
+                    if (isset($row['status'])) {
+                        echo $row['status'] . "\n";
+                    } else {
+                        // Print other SELECT results
+                        echo json_encode($row) . "\n";
+                    }
+                }
+                $result->free();
+                $result_count++;
             } else {
-                $error_count++;
-                echo "⚠ Warning: " . $conn->error . "\n";
-                $log->warning('SQL statement failed', [
-                    'error' => $conn->error,
-                    'statement' => substr($statement, 0, 100) . '...'
-                ]);
+                // No result set (INSERT, UPDATE, etc.)
+                if ($conn->error) {
+                    echo "⚠ Warning: " . $conn->error . "\n";
+                    $error_count++;
+                } else {
+                    $result_count++;
+                }
             }
-        } catch (Exception $e) {
-            $error_count++;
-            echo "⚠ Error: " . $e->getMessage() . "\n";
-            $log->error('SQL statement exception', [
-                'error' => $e->getMessage(),
-                'statement' => substr($statement, 0, 100) . '...'
-            ]);
-        }
-    }
 
-    echo "\n✅ Migration completed: $success_count successful, $error_count warnings/errors\n";
-    return true;
+            // Check for more results
+            if ($conn->more_results()) {
+                // Move to next result
+            } else {
+                break;
+            }
+        } while ($conn->next_result());
+
+        // Check for any final errors
+        if ($conn->error) {
+            echo "⚠ Final error: " . $conn->error . "\n";
+            $error_count++;
+        }
+
+        echo "\n✅ Migration completed: $result_count operations processed";
+        if ($error_count > 0) {
+            echo ", $error_count warnings/errors";
+        }
+        echo "\n";
+
+        return true;
+    } else {
+        echo "❌ Migration failed: " . $conn->error . "\n";
+        $log->error('Migration execution failed', [
+            'error' => $conn->error,
+            'file' => $migration_file
+        ]);
+        return false;
+    }
 }
 
 function verifyTables($conn) {
@@ -77,7 +99,9 @@ function verifyTables($conn) {
         'user_payout_methods',
         'payout_cards',
         'withdrawal_requests',
-        'transactions'
+        'transactions',
+        'user_withdrawal_limits',
+        'user_withdrawal_monthly'
     ];
 
     $existing_tables = [];
@@ -109,7 +133,8 @@ try {
     $migrations = [
         __DIR__ . '/migrations/000_create_payout_tables.sql',
         __DIR__ . '/migrations/001_optimize_withdrawal_tables.sql',
-        __DIR__ . '/migrations/002_add_withdrawal_limits_tracking.sql'
+        __DIR__ . '/migrations/002_add_withdrawal_limits_tracking.sql',
+        __DIR__ . '/migrations/003_update_existing_schema.sql'
     ];
 
     foreach ($migrations as $migration) {
