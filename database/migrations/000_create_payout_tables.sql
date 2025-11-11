@@ -49,19 +49,33 @@ CREATE TABLE IF NOT EXISTS payout_cards (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Add foreign key for payout_card_id if not exists
-SET @query = IF(
-    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
-     WHERE CONSTRAINT_SCHEMA = DATABASE()
-     AND TABLE_NAME = 'user_payout_methods'
-     AND CONSTRAINT_NAME = 'fk_upm_payout_card') = 0,
-    'ALTER TABLE user_payout_methods ADD CONSTRAINT fk_upm_payout_card
-     FOREIGN KEY (payout_card_id) REFERENCES payout_cards(id) ON DELETE SET NULL',
-    'SELECT "Foreign key already exists" AS message'
-);
+DELIMITER $$
 
-PREPARE stmt FROM @query;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+DROP PROCEDURE IF EXISTS AddForeignKeyIfNotExists$$
+CREATE PROCEDURE AddForeignKeyIfNotExists()
+BEGIN
+    DECLARE fkExists INT DEFAULT 0;
+
+    SELECT COUNT(*) INTO fkExists
+    FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'user_payout_methods'
+    AND CONSTRAINT_NAME = 'fk_upm_payout_card';
+
+    IF fkExists = 0 THEN
+        ALTER TABLE user_payout_methods
+        ADD CONSTRAINT fk_upm_payout_card
+        FOREIGN KEY (payout_card_id) REFERENCES payout_cards(id) ON DELETE SET NULL;
+        SELECT '✓ Foreign key fk_upm_payout_card created' AS status;
+    ELSE
+        SELECT '⊘ Foreign key fk_upm_payout_card already exists' AS status;
+    END IF;
+END$$
+
+DELIMITER ;
+
+CALL AddForeignKeyIfNotExists();
+DROP PROCEDURE IF EXISTS AddForeignKeyIfNotExists;
 
 -- ============================================================
 -- Verification Queries
