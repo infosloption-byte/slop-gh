@@ -2,72 +2,45 @@
 -- Migration: Update Existing Tables for Withdrawal System
 -- Description: Add missing columns and update existing tables
 -- Date: 2025-01-11
+-- Fixed: Removed DELIMITER for PHP compatibility
 -- Note: This updates YOUR existing database structure
 -- ============================================================
 
--- Helper procedure to safely add columns
-DELIMITER $$
+-- 1. ADD MISSING COLUMNS TO user_payout_methods
 
-DROP PROCEDURE IF EXISTS AddColumnIfNotExists$$
-CREATE PROCEDURE AddColumnIfNotExists(
-    IN tableName VARCHAR(128),
-    IN columnName VARCHAR(128),
-    IN columnDefinition VARCHAR(512)
-)
-BEGIN
-    DECLARE colExists INT DEFAULT 0;
-
-    SELECT COUNT(*) INTO colExists
+-- Add is_active column if not exists
+SET @colExists = (
+    SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = tableName
-    AND COLUMN_NAME = columnName;
+    AND TABLE_NAME = 'user_payout_methods'
+    AND COLUMN_NAME = 'is_active'
+);
+SET @sql = IF(@colExists = 0,
+    'ALTER TABLE `user_payout_methods` ADD COLUMN `is_active` TINYINT(1) NOT NULL DEFAULT 1 AFTER `is_default`',
+    'SELECT ''⊘ Column is_active already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
-    IF colExists = 0 THEN
-        SET @sql = CONCAT('ALTER TABLE `', tableName, '` ADD COLUMN `', columnName, '` ', columnDefinition);
-        PREPARE stmt FROM @sql;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-        SELECT CONCAT('✓ Added column: ', columnName) AS status;
-    ELSE
-        SELECT CONCAT('⊘ Column already exists: ', columnName) AS status;
-    END IF;
-END$$
-
-DROP PROCEDURE IF EXISTS AddIndexIfNotExists$$
-CREATE PROCEDURE AddIndexIfNotExists(
-    IN tableName VARCHAR(128),
-    IN indexName VARCHAR(128),
-    IN indexColumns VARCHAR(255)
-)
-BEGIN
-    DECLARE indexExists INT DEFAULT 0;
-
-    SELECT COUNT(*) INTO indexExists
-    FROM INFORMATION_SCHEMA.STATISTICS
+-- Add updated_at column if not exists
+SET @colExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = tableName
-    AND INDEX_NAME = indexName;
-
-    IF indexExists = 0 THEN
-        SET @sql = CONCAT('CREATE INDEX `', indexName, '` ON `', tableName, '` (', indexColumns, ')');
-        PREPARE stmt FROM @sql;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-        SELECT CONCAT('✓ Created index: ', indexName) AS status;
-    ELSE
-        SELECT CONCAT('⊘ Index already exists: ', indexName) AS status;
-    END IF;
-END$$
-
-DELIMITER ;
-
--- 1. ADD MISSING COLUMNS TO user_payout_methods
-CALL AddColumnIfNotExists('user_payout_methods', 'is_active', 'TINYINT(1) NOT NULL DEFAULT 1 AFTER `is_default`');
-CALL AddColumnIfNotExists('user_payout_methods', 'updated_at', 'TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`');
+    AND TABLE_NAME = 'user_payout_methods'
+    AND COLUMN_NAME = 'updated_at'
+);
+SET @sql = IF(@colExists = 0,
+    'ALTER TABLE `user_payout_methods` ADD COLUMN `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`',
+    'SELECT ''⊘ Column updated_at already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 2. UPDATE user_payout_methods method_type ENUM to include 'manual'
--- Note: This will fail silently if 'manual' already exists
 SET @currentEnum = (
     SELECT COLUMN_TYPE
     FROM INFORMATION_SCHEMA.COLUMNS
@@ -79,8 +52,8 @@ SET @currentEnum = (
 SET @hasManual = IF(@currentEnum LIKE '%manual%', 1, 0);
 
 SET @alterEnumSQL = IF(@hasManual = 0,
-    'ALTER TABLE `user_payout_methods` MODIFY COLUMN `method_type` ENUM(''stripe_card'',''paypal'',''binance'',''skrill'',''manual'') NOT NULL COMMENT ''The type of payout service''',
-    'SELECT ''⊘ ENUM already includes manual'' AS status'
+    'ALTER TABLE `user_payout_methods` MODIFY COLUMN `method_type` ENUM(''stripe_card'',''paypal'',''binance'',''skrill'',''manual'') NOT NULL',
+    'SELECT ''⊘ ENUM already includes manual'' AS msg'
 );
 
 PREPARE stmt FROM @alterEnumSQL;
@@ -88,8 +61,35 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 -- 3. ADD INDEXES for user_payout_methods
-CALL AddIndexIfNotExists('user_payout_methods', 'idx_user_method', '`user_id`, `method_type`');
-CALL AddIndexIfNotExists('user_payout_methods', 'idx_user_active', '`user_id`, `is_active`');
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'user_payout_methods'
+    AND INDEX_NAME = 'idx_user_method'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_user_method` ON `user_payout_methods`(`user_id`, `method_type`)',
+    'SELECT ''⊘ Index idx_user_method already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'user_payout_methods'
+    AND INDEX_NAME = 'idx_user_active'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_user_active` ON `user_payout_methods`(`user_id`, `is_active`)',
+    'SELECT ''⊘ Index idx_user_active already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 4. payout_cards table check
 -- NOTE: Your payout_cards table already has all required columns:
@@ -97,23 +97,142 @@ CALL AddIndexIfNotExists('user_payout_methods', 'idx_user_active', '`user_id`, `
 -- No modifications needed for this table!
 
 -- 5. ADD INDEXES to withdrawal_requests for performance
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_user_status', '`user_id`, `status`');
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_status_created', '`status`, `requested_at`');
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_created_at', '`requested_at`');
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_processed_at', '`processed_at`');
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_user_created', '`user_id`, `requested_at`');
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_user_status'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_wr_user_status` ON `withdrawal_requests`(`user_id`, `status`)',
+    'SELECT ''⊘ Index idx_wr_user_status already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_status_created'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_wr_status_created` ON `withdrawal_requests`(`status`, `requested_at`)',
+    'SELECT ''⊘ Index idx_wr_status_created already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_created_at'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_wr_created_at` ON `withdrawal_requests`(`requested_at`)',
+    'SELECT ''⊘ Index idx_wr_created_at already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_processed_at'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_wr_processed_at` ON `withdrawal_requests`(`processed_at`)',
+    'SELECT ''⊘ Index idx_wr_processed_at already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_user_created'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_wr_user_created` ON `withdrawal_requests`(`user_id`, `requested_at`)',
+    'SELECT ''⊘ Index idx_wr_user_created already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 6. ADD INDEXES to transactions table
-CALL AddIndexIfNotExists('transactions', 'idx_trans_user_type', '`user_id`, `type`');
-CALL AddIndexIfNotExists('transactions', 'idx_trans_gateway', '`gateway_transaction_id`');
-CALL AddIndexIfNotExists('transactions', 'idx_trans_created', '`created_at`');
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'transactions'
+    AND INDEX_NAME = 'idx_trans_user_type'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_trans_user_type` ON `transactions`(`user_id`, `type`)',
+    'SELECT ''⊘ Index idx_trans_user_type already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'transactions'
+    AND INDEX_NAME = 'idx_trans_gateway'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_trans_gateway` ON `transactions`(`gateway_transaction_id`)',
+    'SELECT ''⊘ Index idx_trans_gateway already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'transactions'
+    AND INDEX_NAME = 'idx_trans_created'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_trans_created` ON `transactions`(`created_at`)',
+    'SELECT ''⊘ Index idx_trans_created already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 7. ADD INDEXES to wallets table
-CALL AddIndexIfNotExists('wallets', 'idx_wallets_user_type', '`user_id`, `type`');
-
--- Clean up procedures
-DROP PROCEDURE IF EXISTS AddColumnIfNotExists;
-DROP PROCEDURE IF EXISTS AddIndexIfNotExists;
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'wallets'
+    AND INDEX_NAME = 'idx_wallets_user_type'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX `idx_wallets_user_type` ON `wallets`(`user_id`, `type`)',
+    'SELECT ''⊘ Index idx_wallets_user_type already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 8. CREATE user_withdrawal_limits table for daily/monthly tracking
 CREATE TABLE IF NOT EXISTS `user_withdrawal_limits` (
@@ -174,10 +293,7 @@ ON DUPLICATE KEY UPDATE
     `total_amount` = VALUES(`total_amount`),
     `withdrawal_count` = VALUES(`withdrawal_count`);
 
--- ============================================================
--- OPTIMIZE TABLES
--- ============================================================
-
+-- 12. OPTIMIZE TABLES
 OPTIMIZE TABLE `withdrawal_requests`;
 OPTIMIZE TABLE `transactions`;
 OPTIMIZE TABLE `user_payout_methods`;

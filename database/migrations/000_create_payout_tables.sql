@@ -2,6 +2,7 @@
 -- Migration: Create Payout Methods Tables
 -- Description: Create tables for user payout methods and cards
 -- Date: 2025-01-10
+-- Fixed: Removed DELIMITER for PHP compatibility
 -- ============================================================
 
 -- Create user_payout_methods table if not exists
@@ -49,33 +50,23 @@ CREATE TABLE IF NOT EXISTS payout_cards (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Add foreign key for payout_card_id if not exists
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS AddForeignKeyIfNotExists$$
-CREATE PROCEDURE AddForeignKeyIfNotExists()
-BEGIN
-    DECLARE fkExists INT DEFAULT 0;
-
-    SELECT COUNT(*) INTO fkExists
+-- Using prepared statements instead of stored procedure for PHP compatibility
+SET @fkExists = (
+    SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
     WHERE CONSTRAINT_SCHEMA = DATABASE()
     AND TABLE_NAME = 'user_payout_methods'
-    AND CONSTRAINT_NAME = 'fk_upm_payout_card';
+    AND CONSTRAINT_NAME = 'fk_upm_payout_card'
+);
 
-    IF fkExists = 0 THEN
-        ALTER TABLE user_payout_methods
-        ADD CONSTRAINT fk_upm_payout_card
-        FOREIGN KEY (payout_card_id) REFERENCES payout_cards(id) ON DELETE SET NULL;
-        SELECT '✓ Foreign key fk_upm_payout_card created' AS status;
-    ELSE
-        SELECT '⊘ Foreign key fk_upm_payout_card already exists' AS status;
-    END IF;
-END$$
+SET @sql = IF(@fkExists = 0,
+    'ALTER TABLE user_payout_methods ADD CONSTRAINT fk_upm_payout_card FOREIGN KEY (payout_card_id) REFERENCES payout_cards(id) ON DELETE SET NULL',
+    'SELECT ''⊘ Foreign key fk_upm_payout_card already exists'' AS msg'
+);
 
-DELIMITER ;
-
-CALL AddForeignKeyIfNotExists();
-DROP PROCEDURE IF EXISTS AddForeignKeyIfNotExists;
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================
 -- Verification Queries

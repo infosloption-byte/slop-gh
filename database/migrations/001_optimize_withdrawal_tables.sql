@@ -2,69 +2,227 @@
 -- Migration: Optimize Withdrawal Tables
 -- Description: Add indexes and optimize existing tables
 -- Date: 2025-01-10
+-- Fixed: Removed DELIMITER for PHP compatibility
 -- ============================================================
 
--- MySQL doesn't support CREATE INDEX IF NOT EXISTS directly
--- We'll use a procedure to safely add indexes
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS AddIndexIfNotExists$$
-CREATE PROCEDURE AddIndexIfNotExists(
-    IN tableName VARCHAR(128),
-    IN indexName VARCHAR(128),
-    IN indexColumns VARCHAR(255)
-)
-BEGIN
-    DECLARE indexExists INT DEFAULT 0;
-
-    SELECT COUNT(*) INTO indexExists
-    FROM INFORMATION_SCHEMA.STATISTICS
-    WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = tableName
-    AND INDEX_NAME = indexName;
-
-    IF indexExists = 0 THEN
-        SET @sql = CONCAT('CREATE INDEX ', indexName, ' ON ', tableName, ' (', indexColumns, ')');
-        PREPARE stmt FROM @sql;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-        SELECT CONCAT('✓ Created index: ', indexName) AS status;
-    ELSE
-        SELECT CONCAT('⊘ Index already exists: ', indexName) AS status;
-    END IF;
-END$$
-
-DELIMITER ;
+-- Helper function to add index if not exists
+-- Using prepared statements instead of stored procedures
 
 -- Add indexes to withdrawal_requests table for better performance
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_user_status', 'user_id, status');
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_status_created', 'status, requested_at');
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_created_at', 'requested_at');
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_processed_at', 'processed_at');
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_user_created', 'user_id, requested_at');
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_user_status'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_wr_user_status ON withdrawal_requests(user_id, status)',
+    'SELECT ''⊘ Index idx_wr_user_status already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_status_created'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_wr_status_created ON withdrawal_requests(status, requested_at)',
+    'SELECT ''⊘ Index idx_wr_status_created already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_created_at'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_wr_created_at ON withdrawal_requests(requested_at)',
+    'SELECT ''⊘ Index idx_wr_created_at already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_processed_at'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_wr_processed_at ON withdrawal_requests(processed_at)',
+    'SELECT ''⊘ Index idx_wr_processed_at already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_user_created'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_wr_user_created ON withdrawal_requests(user_id, requested_at)',
+    'SELECT ''⊘ Index idx_wr_user_created already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Add indexes to transactions table
-CALL AddIndexIfNotExists('transactions', 'idx_trans_user_type', 'user_id, type');
-CALL AddIndexIfNotExists('transactions', 'idx_trans_reference', 'type, reference_id');
-CALL AddIndexIfNotExists('transactions', 'idx_trans_gateway', 'gateway_transaction_id');
-CALL AddIndexIfNotExists('transactions', 'idx_trans_created', 'created_at');
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'transactions'
+    AND INDEX_NAME = 'idx_trans_user_type'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_trans_user_type ON transactions(user_id, type)',
+    'SELECT ''⊘ Index idx_trans_user_type already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'transactions'
+    AND INDEX_NAME = 'idx_trans_reference'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_trans_reference ON transactions(type, reference_id)',
+    'SELECT ''⊘ Index idx_trans_reference already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'transactions'
+    AND INDEX_NAME = 'idx_trans_gateway'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_trans_gateway ON transactions(gateway_transaction_id)',
+    'SELECT ''⊘ Index idx_trans_gateway already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'transactions'
+    AND INDEX_NAME = 'idx_trans_created'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_trans_created ON transactions(created_at)',
+    'SELECT ''⊘ Index idx_trans_created already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Add indexes to user_payout_methods table (if table exists)
-CALL AddIndexIfNotExists('user_payout_methods', 'idx_upm_user_method', 'user_id, method_type');
-CALL AddIndexIfNotExists('user_payout_methods', 'idx_upm_user_active', 'user_id, is_active');
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'user_payout_methods'
+    AND INDEX_NAME = 'idx_upm_user_method'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_upm_user_method ON user_payout_methods(user_id, method_type)',
+    'SELECT ''⊘ Index idx_upm_user_method already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'user_payout_methods'
+    AND INDEX_NAME = 'idx_upm_user_active'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_upm_user_active ON user_payout_methods(user_id, is_active)',
+    'SELECT ''⊘ Index idx_upm_user_active already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Add indexes to wallets table (if not already exist)
-CALL AddIndexIfNotExists('wallets', 'idx_wallets_user_type', 'user_id, type');
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'wallets'
+    AND INDEX_NAME = 'idx_wallets_user_type'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_wallets_user_type ON wallets(user_id, type)',
+    'SELECT ''⊘ Index idx_wallets_user_type already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Add composite index for daily limit checks
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_user_date_status', 'user_id, requested_at, status');
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_user_date_status'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_wr_user_date_status ON withdrawal_requests(user_id, requested_at, status)',
+    'SELECT ''⊘ Index idx_wr_user_date_status already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Add index for admin dashboard queries
-CALL AddIndexIfNotExists('withdrawal_requests', 'idx_wr_status_processed_by', 'status, processed_by');
-
--- Clean up procedure
-DROP PROCEDURE IF EXISTS AddIndexIfNotExists;
+SET @indexExists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'withdrawal_requests'
+    AND INDEX_NAME = 'idx_wr_status_processed_by'
+);
+SET @sql = IF(@indexExists = 0,
+    'CREATE INDEX idx_wr_status_processed_by ON withdrawal_requests(status, processed_by)',
+    'SELECT ''⊘ Index idx_wr_status_processed_by already exists'' AS msg'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Optimize table storage
 OPTIMIZE TABLE withdrawal_requests;
